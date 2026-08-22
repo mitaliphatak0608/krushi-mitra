@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Krushi Mitra Scheme Content (RAG-facing)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "scheme_id", "scheme_name", "type", "category", "benefit_text",
+      "eligibility_summary", "documents_required", "official_link",
+      "status_notes", "last_verified"
+    ],
+    "properties": {
+      "scheme_id": {"type": "string", "description": "Unique key, shared with eligibility_rules.json"},
+      "scheme_name": {"$ref": "#/definitions/mlText"},
+      "type": {"type": "string", "enum": ["Central", "State (Maharashtra)", "Central / State"]},
+      "category": {"type": "string"},
+      "benefit_text": {"$ref": "#/definitions/mlText"},
+      "eligibility_summary": {"$ref": "#/definitions/mlText"},
+      "documents_required": {"$ref": "#/definitions/mlList"},
+      "official_link": {"type": "string"},
+      "status_notes": {"$ref": "#/definitions/mlText"},
+      "last_verified": {"type": "string", "format": "date"}
+    }
+  },
+  "definitions": {
+    "mlText": {
+      "type": "object",
+      "required": ["en", "hi", "mr"],
+      "properties": {
+        "en": {"type": "string"},
+        "hi": {"type": "string"},
+        "mr": {"type": "string"}
+      }
+    },
+    "mlList": {
+      "type": "object",
+      "required": ["en", "hi", "mr"],
+      "properties": {
+        "en": {"type": "array", "items": {"type": "string"}},
+        "hi": {"type": "array", "items": {"type": "string"}},
+        "mr": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

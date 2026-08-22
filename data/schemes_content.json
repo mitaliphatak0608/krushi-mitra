@@ -1,0 +1,399 @@
+[
+  {
+    "scheme_id": "PMKISAN",
+    "scheme_name": {
+      "en": "PM-KISAN",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "Central",
+    "category": "Income Support",
+    "benefit_text": {
+      "en": "₹6,000 per year, paid directly to the farmer's bank account in 3 installments of ₹2,000 each.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Available to landholding farmer families across India, including Maharashtra.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Aadhaar card",
+        "Land ownership record",
+        "Bank passbook"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "pmkisan.gov.in",
+    "status_notes": {
+      "en": "Central scheme; applies uniformly in Maharashtra.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "PMFBY",
+    "scheme_name": {
+      "en": "PM Fasal Bima Yojana (PMFBY)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "Central",
+    "category": "Insurance",
+    "benefit_text": {
+      "en": "Crop insurance covering yield loss. Farmer premium is capped at 2% for Kharif food & oilseed crops, 1.5% for Rabi food & oilseed crops, and 5% for annual commercial/horticultural crops. The government subsidizes the remaining premium.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Available for notified crops in notified areas; farmer must have insurable interest in the crop (owner or tenant cultivator).",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Land record",
+        "Sowing certificate",
+        "Bank account details"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "pmfby.gov.in",
+    "status_notes": {
+      "en": "Central scheme; premium subsidized by government.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "KCC",
+    "scheme_name": {
+      "en": "Kisan Credit Card (KCC)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "Central",
+    "category": "Credit",
+    "benefit_text": {
+      "en": "Short-term crop loans at a subsidized interest rate through a dedicated credit card linked to the farmer's landholding.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Available to landholding farmers and tenant farmers/sharecroppers.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Land record",
+        "Identity proof",
+        "Passport-size photo"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "Apply via any nationalized or cooperative bank",
+    "status_notes": {
+      "en": "Central scheme.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "NAMO_SHETKARI",
+    "scheme_name": {
+      "en": "Namo Shetkari Maha Sanman Nidhi",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Income Support",
+    "benefit_text": {
+      "en": "₹6,000 per year state top-up, paid in addition to the central PM-KISAN benefit.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Same beneficiary base as PM-KISAN; auto-linked for eligible farmers.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Same as PM-KISAN (auto-linked, no separate application needed)"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "State top-up scheme.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "MICRO_IRRIGATION",
+    "scheme_name": {
+      "en": "Micro-Irrigation Subsidy (Drip/Sprinkler)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Irrigation",
+    "benefit_text": {
+      "en": "80% subsidy for marginal farmers (under 1 hectare), 70% for small farmers (1-2 hectares), with an additional 10% top-up for farmers in Marathwada or Vidarbha.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Landholding up to 5 hectares; higher subsidy for marginal and small farmers; extra support in drought-prone regions.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "7/12 extract",
+        "8A record",
+        "Aadhaar card",
+        "Bank passbook",
+        "Farmer ID (Agristack)"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "Budget-dependent; approved on a first-come-first-served basis since 2025-26. Application windows open and close through the year.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "SMAM",
+    "scheme_name": {
+      "en": "Farm Mechanization Scheme (SMAM)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Mechanization",
+    "benefit_text": {
+      "en": "Subsidy on tractors up to 35HP (capped at ₹1,00,000) and on power tillers, rotavators, and seed drills.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Landholding-based eligibility; subsidy percentage varies by farmer category (verify exact % against current portal notification).",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "7/12 extract",
+        "Quotation from an empanelled dealer",
+        "Aadhaar card"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "Equipment must be purchased through an empanelled dealer.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "SOLAR_PUMP",
+    "scheme_name": {
+      "en": "Magel Tyala Saur Krishi Pump Yojana (Solar Pump)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Energy",
+    "benefit_text": {
+      "en": "Farmer pays only 10% of the solar pump cost (5% for SC/ST farmers); the rest is subsidized.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Landholding farmers; existing electricity connection status is considered during application.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "7/12 extract",
+        "Electricity connection proof (if any)",
+        "Aadhaar card"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "FARM_POND",
+    "scheme_name": {
+      "en": "Magel Tyala Shet Tale (Farm Pond)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Irrigation",
+    "benefit_text": {
+      "en": "Subsidy toward construction of an on-farm water storage pond.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Landholding must meet soil and water-availability suitability criteria.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "7/12 extract",
+        "Site photo",
+        "Aadhaar card"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "WELL_SUBSIDY",
+    "scheme_name": {
+      "en": "Well Subsidy (New Well / Repair / Boring)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Irrigation",
+    "benefit_text": {
+      "en": "Up to ₹4,00,000 for a new well and up to ₹1,00,000 for repair of an existing well.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Landholding between 0.4 and 6 hectares; land must be in the farmer's own name and free of encumbrance (“Boja”).",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "7/12 extract",
+        "8A record",
+        "Aadhaar card",
+        "Bank passbook"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "Land must be free of any registered encumbrance.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "KARJMAFI",
+    "scheme_name": {
+      "en": "Punyashlok Ahilyadevi Holkar Karjmafi Yojana (Loan Waiver)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "State (Maharashtra)",
+    "category": "Debt Relief",
+    "benefit_text": {
+      "en": "Waiver of outstanding crop loan, amount as per the applicable government notification.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Farmers with an outstanding crop loan meeting the notification's criteria.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Loan account details",
+        "Aadhaar card",
+        "Bank passbook"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in",
+    "status_notes": {
+      "en": "Subject to periodic government notification; terms can change each cycle.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  },
+  {
+    "scheme_id": "PKVY",
+    "scheme_name": {
+      "en": "Paramparagat Krishi Vikas Yojana (PKVY - Organic Farming Grant)",
+      "hi": "",
+      "mr": ""
+    },
+    "type": "Central / State",
+    "category": "Sustainability",
+    "benefit_text": {
+      "en": "Support for vermicompost units, Jeevamrut infrastructure, and organic certification costs.",
+      "hi": "",
+      "mr": ""
+    },
+    "eligibility_summary": {
+      "en": "Farmer must join a cluster of at least 50 farmers and commit to organic practices for 3 years.",
+      "hi": "",
+      "mr": ""
+    },
+    "documents_required": {
+      "en": [
+        "Cluster group registration",
+        "Aadhaar card",
+        "Land record"
+      ],
+      "hi": [],
+      "mr": []
+    },
+    "official_link": "mahadbt.maharashtra.gov.in / pgsindia-ncof.gov.in",
+    "status_notes": {
+      "en": "Requires a 3-year cluster commitment.",
+      "hi": "",
+      "mr": ""
+    },
+    "last_verified": "2026-08-22"
+  }
+]

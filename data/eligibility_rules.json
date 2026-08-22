@@ -1,0 +1,305 @@
+[
+  {
+    "scheme_id": "PMKISAN",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": false,
+      "types": [],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Aadhaar-linked bank account mandatory"
+    ],
+    "verify_needed": []
+  },
+  {
+    "scheme_id": "PMFBY",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "Land record",
+        "Sowing certificate"
+      ],
+      "conditions": []
+    },
+    "crop_season": [
+      "Kharif",
+      "Rabi"
+    ],
+    "special_conditions": [
+      "Premium capped at 2% (Kharif food/oilseed), 1.5% (Rabi food/oilseed), 5% (annual commercial/horticultural)",
+      "Notified crop and notified area only"
+    ],
+    "verify_needed": []
+  },
+  {
+    "scheme_id": "KCC",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "Land record"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Tenant farmers/sharecroppers also eligible"
+    ],
+    "verify_needed": []
+  },
+  {
+    "scheme_id": "NAMO_SHETKARI",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": false,
+      "types": [],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Auto-linked to PM-KISAN beneficiary list — no separate application"
+    ],
+    "verify_needed": []
+  },
+  {
+    "scheme_id": "MICRO_IRRIGATION",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": 5,
+      "bands": [
+        {
+          "band": "marginal",
+          "max_ha": 1,
+          "subsidy_pct": 80
+        },
+        {
+          "band": "small",
+          "min_ha": 1,
+          "max_ha": 2,
+          "subsidy_pct": 70
+        }
+      ]
+    },
+    "region_topup": [
+      {
+        "regions": [
+          "Marathwada",
+          "Vidarbha"
+        ],
+        "extra_pct": 10
+      }
+    ],
+    "category_share": {},
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "7/12",
+        "8A"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Budget-dependent, first-come-first-served since 2025-26",
+      "Farmer ID (Agristack) required"
+    ],
+    "verify_needed": [
+      "Exact subsidy % for medium band (2-5 ha) not confirmed"
+    ]
+  },
+  {
+    "scheme_id": "SMAM",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {
+      "General": null,
+      "SC": null,
+      "ST": null,
+      "OBC": null
+    },
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "7/12"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Tractor ≤35HP subsidy capped at ₹1,00,000",
+      "Must purchase via empanelled dealer"
+    ],
+    "verify_needed": [
+      "Exact category-wise subsidy percentages not confirmed"
+    ]
+  },
+  {
+    "scheme_id": "SOLAR_PUMP",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {
+      "General": 10,
+      "SC": 5,
+      "ST": 5,
+      "OBC": 10
+    },
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "7/12"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Existing electricity connection status considered"
+    ],
+    "verify_needed": [
+      "OBC share assumed same as General — confirm against portal"
+    ]
+  },
+  {
+    "scheme_id": "FARM_POND",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "7/12"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Soil and water-availability suitability criteria apply"
+    ],
+    "verify_needed": [
+      "Exact subsidy amount/percentage not confirmed"
+    ]
+  },
+  {
+    "scheme_id": "WELL_SUBSIDY",
+    "landholding": {
+      "min_ha": 0.4,
+      "max_ha": 6,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {
+      "General": null,
+      "SC": null,
+      "ST": null,
+      "OBC": null
+    },
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "7/12",
+        "8A"
+      ],
+      "conditions": [
+        "Must be in farmer's own name",
+        "Free of encumbrance (“Boja”)"
+      ]
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "New well cap ₹4,00,000",
+      "Repair cap ₹1,00,000"
+    ],
+    "verify_needed": [
+      "Exact category-wise subsidy percentages not confirmed"
+    ]
+  },
+  {
+    "scheme_id": "KARJMAFI",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {
+      "General": null,
+      "SC": null,
+      "ST": null,
+      "OBC": null
+    },
+    "land_record_required": {
+      "required": false,
+      "types": [],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Subject to periodic government notification",
+      "Requires an outstanding crop loan"
+    ],
+    "verify_needed": [
+      "Waiver amount/cap changes per notification cycle — confirm current cycle"
+    ]
+  },
+  {
+    "scheme_id": "PKVY",
+    "landholding": {
+      "min_ha": null,
+      "max_ha": null,
+      "bands": []
+    },
+    "region_topup": [],
+    "category_share": {},
+    "land_record_required": {
+      "required": true,
+      "types": [
+        "Land record"
+      ],
+      "conditions": []
+    },
+    "crop_season": [],
+    "special_conditions": [
+      "Must join a farmer cluster of at least 50 farmers",
+      "3-year commitment required"
+    ],
+    "verify_needed": []
+  }
+]
