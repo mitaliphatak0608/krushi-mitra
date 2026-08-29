@@ -31,3 +31,8 @@ node_modules/
 # Build files
 dist/
 build/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3

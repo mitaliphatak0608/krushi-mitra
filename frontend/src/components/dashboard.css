@@ -1,0 +1,168 @@
+/* dashboard.css - Clean, Modern Dashboard Styles */
+
+:root {
+  --dash-primary: #2C5F2D;
+  --dash-primary-dark: #1F4620;
+  --dash-accent: #97BC62;
+  --dash-bg: #F4F7F2;
+  --dash-card: #FFFFFF;
+  --dash-text: #1A2E1B;
+  --dash-muted: #5C6F5E;
+  --dash-border: #E5EADF;
+  --dash-danger: #EF4444;
+  --dash-danger-bg: #FEF2F2;
+}
+
+/* Layout */
+.dashboard-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--dash-bg);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Sidebar */
+.dash-sidebar {
+  width: 260px;
+  background-color: var(--dash-primary-dark);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.dash-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dash-logo-icon {
+  width: 36px;
+  height: 36px;
+  background-color: var(--dash-primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-sidebar-nav {
+  flex: 1;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dash-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dash-accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.dash-nav-btn.active {
+  background-color: var(--dash-primary);
+  color: #fff;
+}
+
+/* Main Content Area */
+.dash-main {
+  flex: 1;
+  padding: 2.5rem 3rem;
+  overflow-y: auto;
+}
+
+.dash-header {
+  margin-bottom: 2rem;
+}
+
+.dash-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--dash-primary-dark);
+  margin-bottom: 0.25rem;
+}
+
+.dash-subtitle {
+  color: var(--dash-muted);
+  font-size: 0.95rem;
+}
+
+/* Cards */
+.dash-card {
+  background-color: var(--dash-card);
+  border: 1px solid var(--dash-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.025);
+}
+
+.dash-card.primary-card {
+  background-color: var(--dash-primary);
+  color: white;
+  border: none;
+}
+
+/* Form Inputs within Dashboard */
+.dash-input-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dash-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.dash-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--dash-border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dash-input:focus {
+  border-color: var(--dash-accent);
+  box-shadow: 0 0 0 3px rgba(151, 188, 98, 0.15);
+}
+
+.dash-btn-primary {
+  background-color: var(--dash-primary);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-btn-primary:hover {
+  background-color: var(--dash-primary-dark);
+  transform: translateY(-1px);
+}

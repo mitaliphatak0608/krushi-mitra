@@ -1,0 +1,89 @@
+/* Devanagari-capable webfont -- system fonts render Hindi/Marathi inconsistently
+   across devices; this guarantees consistent Hindi/Marathi rendering regardless
+   of what's installed on the farmer's phone. */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;700&display=swap');
+
+/* Inject Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Brand Variables */
+:root {
+  --forest: #2C5F2D;
+  --forest-dark: #1F4620;
+  --moss: #97BC62;
+  --gold: #E8A33D;
+  --cream: #F7F8F5;
+  --card: #FFFFFF;
+  --ink: #1A2E1B;
+  --muted: #5C6F5E;
+  --line: #DCE3D9;
+  --danger: #B45B4A;
+}
+
+/* Global App Styling */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--cream);
+  color: var(--ink);
+  font-family: Georgia, 'Noto Serif Devanagari', serif;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Customizing the Scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--moss);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--forest);
+}
+
+/* Chatbot Redirect Button (Dashboard Sidebar) */
+.btn-chatbot {
+  background-color: var(--gold);
+  color: var(--forest-dark);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-chatbot:hover {
+  background-color: #d19335;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Recharts Customization overrides to prevent chart text overlap */
+.recharts-default-tooltip {
+  border-radius: 8px !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
