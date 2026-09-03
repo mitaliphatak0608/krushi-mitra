@@ -7,6 +7,7 @@ import {
   Wheat, Loader2
 } from "lucide-react";
 import "./dashboard.css";
+import NotificationBell from "./NotificationBell";
 
 
 // Eligibility is now evaluated server-side — one source of truth.
@@ -184,17 +185,20 @@ export default function FarmerDashboard({ onLogout, lang, setLang, userData, set
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} t={t} />
       
       <div className="dash-main relative">
-        {/* GLOBAL LANGUAGE TOGGLE */}
-        <div className="absolute top-6 right-8 flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-1 z-10">
-          {["en", "hi", "mr"].map((code) => (
-            <button 
-              key={code} 
-              onClick={() => setLang(code)} 
-              className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${lang === code ? "bg-[#2C5F2D] text-white" : "text-gray-500 hover:bg-gray-100"}`}
-            >
-              {code === "en" ? "EN" : code === "hi" ? "हिं" : "मर"}
-            </button>
-          ))}
+        {/* GLOBAL LANGUAGE TOGGLE + NOTIFICATION BELL */}
+        <div className="absolute top-6 right-8 flex items-center gap-2 z-10">
+          <NotificationBell lang={lang} profile={userData} />
+          <div className="flex items-center bg-white rounded-full shadow-sm border border-gray-200 p-1">
+            {["en", "hi", "mr"].map((code) => (
+              <button 
+                key={code} 
+                onClick={() => setLang(code)} 
+                className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${lang === code ? "bg-[#2C5F2D] text-white" : "text-gray-500 hover:bg-gray-100"}`}
+              >
+                {code === "en" ? "EN" : code === "hi" ? "हिं" : "मर"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* --- HOME TAB --- */}

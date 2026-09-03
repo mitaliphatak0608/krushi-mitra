@@ -135,6 +135,35 @@ class ProfileUpdateRequest(BaseModel):
     profile: dict[str, Any]
 
 
+class NotificationItem(BaseModel):
+    id: int
+    scheme_id: str
+    type: str          # "new_scheme" | "closing_soon"
+    title: dict[str, str]
+    body: dict[str, str]
+    deadline: str | None
+    eligible_categories: list[str]
+    min_land: float | None
+    max_income: float | None
+    official_source: str | None = None
+    official_link: str | None = None
+    is_active: int
+    created_at: str
+
+
+class CreateNotificationRequest(BaseModel):
+    scheme_id: str
+    type: str          # "new_scheme" | "closing_soon"
+    title: dict[str, str]
+    body: dict[str, str]
+    deadline: str | None = None
+    eligible_categories: list[str] = []
+    min_land: float | None = None
+    max_income: float | None = None
+    official_source: str | None = None
+    official_link: str | None = None
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -278,6 +307,84 @@ def list_admin_users() -> list[dict[str, Any]]:
     return database.get_all_users()
 
 
+# ---------------------------------------------------------------------------
+# Notification endpoints
+# ---------------------------------------------------------------------------
+
+class ProfileQueryBody(BaseModel):
+    profile: dict[str, Any] = {}
+    lang: str = "en"
+
+
+@app.post("/notifications")
+def get_notifications(body: ProfileQueryBody) -> list[dict[str, Any]]:
+    """
+    Returns active notifications filtered by the farmer's profile.
+    The profile is passed in the request body for eligibility filtering.
+    """
+    return database.get_active_notifications(profile=body.profile)
+
+
+@app.get("/admin/notifications")
+def list_all_notifications() -> list[dict[str, Any]]:
+    """Returns ALL notifications (active + inactive) for the admin panel."""
+    return database.get_all_notifications_admin()
+
+
+@app.post("/admin/notifications", response_model=dict[str, Any])
+def create_notification(body: CreateNotificationRequest) -> dict[str, Any]:
+    """Admin creates a new scheme notification/alert."""
+    if body.type not in ("new_scheme", "closing_soon"):
+        raise HTTPException(
+            status_code=422,
+            detail="type must be 'new_scheme' or 'closing_soon'",
+        )
+    notif = database.create_notification(
+        scheme_id=body.scheme_id,
+        notif_type=body.type,
+        title=body.title,
+        body=body.body,
+        deadline=body.deadline,
+        eligible_categories=body.eligible_categories,
+        min_land=body.min_land,
+        max_income=body.max_income,
+        official_source=body.official_source,
+        official_link=body.official_link,
+    )
+    return notif
+
+
+@app.patch("/admin/notifications/{notif_id}/deactivate")
+def deactivate_notification(notif_id: int) -> dict[str, Any]:
+    """Admin deactivates (soft-deletes) a notification by ID."""
+    success = database.deactivate_notification(notif_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return {"status": "ok", "id": notif_id}
+
+
+# ---------------------------------------------------------------------------
+# Settings Endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/settings")
+def get_system_settings() -> dict[str, Any]:
+    """Returns current system settings for admin console & system configuration."""
+    return database.get_all_settings()
+
+
+@app.put("/settings")
+def update_system_settings(updates: dict[str, Any]) -> dict[str, Any]:
+    """Updates system settings in the database."""
+    return database.update_settings(updates)
+
+
+@app.post("/settings/reset")
+def reset_system_settings() -> dict[str, Any]:
+    """Resets system settings to default baseline."""
+    return database.reset_settings()
+
+
 @app.post("/eligibility", response_model=list[SchemeEligibilityResult])
 def check_eligibility(body: EligibilityRequest) -> list[SchemeEligibilityResult]:
     """
@@ -384,7 +491,7 @@ def verify_admin_key(body: AdminKeyRequest) -> AdminKeyResponse:
 # ---------------------------------------------------------------------------
 # Chat endpoint — semantic search + eligibility evaluation in one call
 # ---------------------------------------------------------------------------
-NO_MATCH_THRESHOLD = 0.30
+NO_MATCH_THRESHOLD = 0.20
 
 
 class ChatRequest(BaseModel):
@@ -423,14 +530,38 @@ GREETINGS = {
 }
 
 ALL_SCHEMES_KEYWORDS = [
+    # English — all / list
     "all scheme", "all schemes", "list scheme", "list schemes",
     "every scheme", "all the schemes", "what schemes", "which schemes",
     "available schemes", "schemes available", "show schemes", "show all",
     "tell me about all", "give all schemes", "how many schemes",
+    "schemes for me", "eligible schemes", "show me schemes",
+    # Marathi — all / list
     "सर्व योजना", "सगळ्या योजना", "सर्व शासकीय योजना", "योजनांची यादी",
     "सर्व योजनांची माहिती", "कोणत्या योजना", "उपलब्ध योजना", "सर्व माहिती",
+    "कोणत्या योजनांसाठी", "माझ्यासाठी कोणत्या योजना",
+    # Hindi — all / list
     "सभी योजना", "सभी योजनाएं", "योजनाओं की सूची", "कौन सी योजनाएं",
-    "कुल योजनाएं", "योजनाओं के नाम", "सारी योजनाएं"
+    "कुल योजनाएं", "योजनाओं के नाम", "सारी योजनाएं", "मेरे लिए योजनाएं",
+]
+
+# Queries specifically asking WHY a farmer is NOT eligible for schemes
+INELIGIBLE_REASONS_KEYWORDS = [
+    # English
+    "why not eligible", "why am i not", "not eligible for", "ineligible",
+    "which schemes not", "which scheme not", "not qualify", "don't qualify",
+    "do not qualify", "why can't i", "why cannot", "reason not eligible",
+    "not getting", "why i am not", "why am i ineligible", "not approved",
+    "cannot get", "can't get", "which schemes am i not", "schemes i am not",
+    "schemes i'm not", "not covered", "excluded from", "what makes me ineligible",
+    # Marathi
+    "का पात्र नाही", "पात्र का नाही", "पात्र नाही का", "कोणत्या योजनांसाठी पात्र नाही",
+    "अपात्र का", "अपात्र आहे का", "का मिळत नाही", "का मिळणार नाही",
+    "कारण काय", "नाकारले का", "का नाही पात्र",
+    # Hindi
+    "क्यों पात्र नहीं", "पात्र क्यों नहीं", "अपात्र क्यों", "क्यों नहीं मिलेगा",
+    "कौन सी योजना नहीं", "किन योजनाओं के लिए नहीं", "क्यों नहीं मिलता",
+    "कारण बताएं", "अयोग्य क्यों", "क्यों नहीं पात्र",
 ]
 
 
@@ -439,8 +570,9 @@ def chat(body: ChatRequest) -> ChatResponse:
     """
     Conversational scheme assistant with intent classification and RAG retrieval:
     1. Greeting intent: Returns a helpful greeting in the user's language.
-    2. All schemes intent: Returns all 11 central and state schemes evaluated against profile.
-    3. Specific scheme intent: FAISS cross-lingual embedding search + eligibility evaluation.
+    2. Ineligible-reasons intent: Lists ALL schemes the farmer does NOT qualify for, with reasons.
+    3. All schemes intent: Returns all 11 central and state schemes evaluated against profile.
+    4. Specific scheme intent: FAISS cross-lingual embedding search + eligibility evaluation.
     """
     lang = body.lang if body.lang in ("en", "hi", "mr") else "en"
     raw_query = body.query.strip().lower()
@@ -459,7 +591,70 @@ def chat(body: ChatRequest) -> ChatResponse:
             message=greeting_msgs.get(lang, greeting_msgs["en"]),
         )
 
-    # 2. 'All schemes' / 'List schemes' overview intent check
+    # 2. Ineligible-reasons intent — "why am I not eligible / which schemes am I not eligible for"
+    is_ineligible_query = any(k in raw_query for k in INELIGIBLE_REASONS_KEYWORDS)
+
+    if is_ineligible_query:
+        ineligible_items: list[SchemeSummaryItem] = []
+        for s_id in eligibility.RULES.keys():
+            scheme = scheme_map.get(s_id)
+            if not scheme:
+                continue
+            eval_res = eligibility.evaluate(s_id, body.profile)
+            if eval_res["eligible"]:
+                continue  # skip eligible schemes — user only asked about ineligible ones
+            name_d = scheme.get("scheme_name", {})
+            ben_d  = scheme.get("benefit_text", {})
+            name_val = name_d.get(lang) or name_d.get("en", s_id)
+            ben_val  = ben_d.get(lang) or ben_d.get("en", "")
+
+            ineligible_items.append(SchemeSummaryItem(
+                scheme_id=s_id,
+                name=name_val,
+                category=scheme.get("category", ""),
+                benefit=ben_val,
+                eligible=False,
+                note=eval_res["note"],
+            ))
+
+        ineligible_count = len(ineligible_items)
+
+        if ineligible_count == 0:
+            congrats_msgs = {
+                "en": "Great news! Based on your current farm profile, you are eligible for ALL available schemes. Update your profile if your details have changed.",
+                "hi": "बहुत बढ़िया! आपकी वर्तमान प्रोफ़ाइल के अनुसार, आप सभी उपलब्ध योजनाओं के लिए पात्र हैं।",
+                "mr": "अभिनंदन! तुमच्या सध्याच्या प्रोफाइलनुसार, तुम्ही सर्व उपलब्ध योजनांसाठी पात्र आहात.",
+            }
+            return ChatResponse(
+                found=True,
+                type="ineligible_reasons",
+                message=congrats_msgs.get(lang, congrats_msgs["en"]),
+                schemes=[],
+            )
+
+        intro_msgs = {
+            "en": (
+                f"Based on your farm profile, you are NOT eligible for {ineligible_count} scheme(s). "
+                f"Here is the reason for each:"
+            ),
+            "hi": (
+                f"आपकी प्रोफ़ाइल के अनुसार, आप {ineligible_count} योजना(ओं) के लिए पात्र नहीं हैं। "
+                f"नीचे प्रत्येक का कारण दिया गया है:"
+            ),
+            "mr": (
+                f"तुमच्या प्रोफाइलनुसार, तुम्ही {ineligible_count} योजना(ना)साठी पात्र नाही. "
+                f"खाली प्रत्येकाचे कारण दिले आहे:"
+            ),
+        }
+
+        return ChatResponse(
+            found=True,
+            type="ineligible_reasons",
+            message=intro_msgs.get(lang, intro_msgs["en"]),
+            schemes=ineligible_items,
+        )
+
+    # 3. 'All schemes' / 'List schemes' overview intent check
     is_all_schemes = any(k in raw_query for k in ALL_SCHEMES_KEYWORDS) or (
         ("all" in raw_query or "every" in raw_query or "list" in raw_query) and "scheme" in raw_query
     ) or (
@@ -506,7 +701,7 @@ def chat(body: ChatRequest) -> ChatResponse:
             schemes=scheme_items,
         )
 
-    # 3. Specific Scheme RAG Semantic Search
+    # 4. Specific Scheme RAG Semantic Search
     try:
         index, metadata = load_vector_store()
     except RuntimeError as exc:

@@ -191,8 +191,81 @@ function AllSchemesCard({ response, lang, onSelectScheme }) {
 }
 
 // ---------------------------------------------------------------------------
-// Typing bubble shown while the API is in-flight
+// IneligibleReasonsCard — shows ONLY the ineligible schemes with per-scheme reasons
 // ---------------------------------------------------------------------------
+function IneligibleReasonsCard({ response, lang, onSelectScheme }) {
+  const schemes = response.schemes || [];
+
+  if (schemes.length === 0) {
+    // All schemes are eligible — show a congratulations message
+    return (
+      <div className="mt-2 rounded-xl overflow-hidden border p-3.5" style={{ borderColor: MOSS, backgroundColor: "#F0FBF0" }}>
+        <div className="flex items-center gap-2">
+          <CheckCircle2 size={20} color={FOREST} />
+          <p className="text-sm font-bold" style={{ color: FOREST_DARK }}>{response.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-xl overflow-hidden border space-y-2.5 p-3.5" style={{ borderColor: "#E8B4A0", backgroundColor: CARD }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: "#FDE8E0" }}>
+        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "#8B4A3D" }}>
+          <XCircle size={14} color="#fff" />
+        </div>
+        <p className="text-xs font-bold leading-relaxed" style={{ color: "#8B4A3D" }}>
+          {response.message}
+        </p>
+      </div>
+
+      <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+        {schemes.map((s) => (
+          <div
+            key={s.scheme_id}
+            onClick={() => onSelectScheme && onSelectScheme(s.name)}
+            className="p-2.5 rounded-lg border transition-all cursor-pointer hover:shadow-sm"
+            style={{ borderColor: "#E8B4A0", backgroundColor: "#FFFBFB" }}
+          >
+            {/* Scheme name + category */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold" style={{ color: INK }}>{s.name}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border text-gray-600 font-medium">
+                  {s.category}
+                </span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded font-bold"
+                style={{ backgroundColor: "#FEF2F2", color: "#8B4A3D" }}>
+                Not eligible
+              </span>
+            </div>
+
+            {/* Reason — highlighted prominently */}
+            {s.note && (
+              <div className="flex items-start gap-1.5 mt-1.5 p-1.5 rounded-md" style={{ backgroundColor: "#FEF2F2" }}>
+                <AlertCircle size={12} color="#C0392B" className="mt-0.5 flex-shrink-0" />
+                <p className="text-[11px] font-semibold" style={{ color: "#8B4A3D" }}>
+                  {s.note}
+                </p>
+              </div>
+            )}
+
+            {/* Benefit text (lighter, for context) */}
+            <p className="text-xs mt-1" style={{ color: MUTED }}>{s.benefit}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-center pt-1" style={{ color: MUTED }}>
+        💡 Click on any scheme to ask how you can become eligible.
+      </p>
+    </div>
+  );
+}
+
+
 function TypingBubble({ lang }) {
   const t = UI_TEXT[lang] || UI_TEXT.en;
   return (
@@ -427,6 +500,13 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
                       onSelectScheme={(schemeName) => handleSend(`Tell me details about ${schemeName}`)}
                     />
                   )}
+                  {m.response?.type === "ineligible_reasons" && (
+                    <IneligibleReasonsCard
+                      response={m.response}
+                      lang={lang}
+                      onSelectScheme={(schemeName) => handleSend(`Why am I not eligible for ${schemeName}?`)}
+                    />
+                  )}
                   {m.response?.type === "greeting" && (
                     <div className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed" style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}` }}>
                       {m.response.message}
@@ -437,7 +517,7 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
                       {m.response.message && (
                         <div
                           className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed mb-2 shadow-xs"
-                          style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}` }}
+                          style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}`, whiteSpace: "pre-line" }}
                         >
                           {m.response.message}
                         </div>
