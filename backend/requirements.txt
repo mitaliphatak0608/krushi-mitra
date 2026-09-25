@@ -5,3 +5,8 @@ sentence-transformers
 python-dotenv
 numpy
 pyjwt
+openai>=1.40.0
+httpx
+tiktoken
+python-multipart
+gTTS

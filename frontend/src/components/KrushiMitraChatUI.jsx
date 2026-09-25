@@ -4,6 +4,7 @@ import {
   Leaf, Send, Mic, CheckCircle2, XCircle, AlertCircle, MapPin,
   Sprout, ExternalLink, ChevronDown, User, ArrowLeft, Loader2
 } from "lucide-react";
+import VoiceAssistant from "./VoiceAssistant";
 
 const CHAT_ENDPOINT    = "http://localhost:8000/chat";
 const SCHEMES_ENDPOINT = "http://localhost:8000/schemes";
@@ -313,6 +314,7 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
   const [showProfile, setShowProfile] = useState(true);
   const [input, setInput]             = useState("");
   const [isLoading, setIsLoading]     = useState(false);
+  const [showVoice, setShowVoice]     = useState(false);
   const [quickChips, setQuickChips]   = useState([]);
   const [messages, setMessages]       = useState([
     { id: 1, from: "bot", text: t.greeting },
@@ -569,7 +571,14 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
             className="flex-1 text-sm outline-none bg-transparent"
             style={{ color: INK }}
           />
-          <Mic size={16} color={MUTED} />
+          <button
+            onClick={() => setShowVoice(true)}
+            className="flex items-center justify-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+            title="Voice Assistant"
+            aria-label="Open Voice Assistant"
+          >
+            <Mic size={16} color={MUTED} />
+          </button>
         </div>
         <button
           onClick={() => handleSend()}
@@ -583,6 +592,17 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
           }
         </button>
       </div>
+
+      {/* ---- Voice Assistant overlay ---- */}
+      {showVoice && (
+        <VoiceAssistant
+          lang={lang}
+          setLang={setLang}
+          profile={localProfile}
+          useAI={false}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
     </div>
   );
-}
+}

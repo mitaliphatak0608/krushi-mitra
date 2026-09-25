@@ -7,12 +7,14 @@ from typing import Any
 import faiss
 import numpy as np
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
-from backend import auth_utils, database, qa_engine
+from backend import auth_utils, database, knowledge_base, qa_engine, stt_tts, voice_utils
+from backend import ai_engine
 from backend import rules as eligibility
 
 # Initialize SQLite database
@@ -747,3 +749,184 @@ def chat(body: ChatRequest) -> ChatResponse:
         link=scheme.get("official_link"),
         score=best_score,
     )
+
+class AIChatRequest(BaseModel):
+    message: str
+    language: str = "en"
+    profile: dict[str, Any] = {}
+    voice: str | None = None
+
+
+class AIChatResponse(BaseModel):
+    answer: str
+    language: str
+    intent: str
+    sources: list[Any] = []
+    grounded: bool = True
+    analysis: dict[str, Any] | None = None
+    speech_text: str | None = None
+
+
+class AITranscribeResponse(BaseModel):
+    text: str
+    language: str
+
+
+class AISpeakRequest(BaseModel):
+    text: str
+    language: str = "en"
+    voice: str | None = None
+
+
+def _require_ai():
+    if not ai_engine.is_ai_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="AI chat is disabled. Set AI_CHAT_ENABLED=true in backend/.env",
+        )
+
+
+@app.post("/ai/chat", response_model=AIChatResponse)
+def ai_chat(body: AIChatRequest):
+    _require_ai()
+
+    try:
+        analysis = ai_engine.analyze_query(body.message, body.language)
+
+        faiss_results = None
+        if analysis.get("intent") in ("scheme_query", "eligibility_check"):
+            try:
+                model_st = get_model()
+                index, meta = load_vector_store()
+                q_vec = model_st.encode([body.message], normalize_embeddings=True)
+                scores, indices = index.search(q_vec, min(5, len(meta)))
+
+                seen: set[str] = set()
+                faiss_results = []
+                for score, idx in zip(scores[0], indices[0]):
+                    if idx < 0:
+                        continue
+                    entry = meta[idx]
+                    sid = entry["scheme_id"]
+                    if sid in seen:
+                        continue
+                    seen.add(sid)
+                    faiss_results.append({"scheme_id": sid, "score": float(score)})
+                    if len(faiss_results) >= 3:
+                        break
+            except Exception:
+                faiss_results = None
+
+        agri_kb_results = None
+        agri_intents = {
+            "general_agriculture", "crop_disease", "pest_control",
+            "fertilizer", "irrigation", "crop_protection", "sowing",
+            "harvesting", "soil", "seed", "livestock"
+        }
+
+        if analysis.get("intent") in agri_intents:
+            try:
+                agri_kb_results = knowledge_base.search_agri_knowledge(
+                    query=body.message,
+                    language=body.language,
+                    crop=analysis.get("crop"),
+                    use_test=False,
+                )
+            except Exception:
+                agri_kb_results = None
+
+        context = ai_engine.gather_context(
+            analysis, body.profile, faiss_results, agri_kb_results
+        )
+
+        result = ai_engine.generate_response(
+            body.message, analysis, context, body.profile, agri_kb_results
+        )
+
+        speech_text = voice_utils.simplify_ai_response(
+            result["answer"], result["language"]
+        )
+
+        return AIChatResponse(
+            answer=result["answer"],
+            language=result["language"],
+            intent=result["intent"],
+            sources=result["sources"],
+            grounded=result["grounded"],
+            analysis=result.get("analysis"),
+            speech_text=speech_text,
+        )
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        logger.exception("AI chat failed")
+        raise HTTPException(status_code=500, detail="AI processing failed. Please try again.")
+
+
+@app.post("/ai/transcribe", response_model=AITranscribeResponse)
+async def ai_transcribe(file: UploadFile = File(...)):
+    _require_ai()
+
+    ctype = (file.content_type or "").lower()
+    if ctype and not ctype.startswith("audio/"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Expected audio file, received: {ctype}",
+        )
+
+    audio_bytes = await file.read()
+
+    if not audio_bytes:
+        raise HTTPException(status_code=422, detail="Empty audio file.")
+
+    if len(audio_bytes) > stt_tts.MAX_AUDIO_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file too large. Max {stt_tts.MAX_AUDIO_SIZE_BYTES // (1024*1024)} MB.",
+        )
+
+    try:
+        text, lang = stt_tts.transcribe_audio(
+            audio_bytes,
+            filename=file.filename or "audio.webm",
+        )
+        return AITranscribeResponse(text=text, language=lang)
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        logger.exception("Transcription failed")
+        raise HTTPException(status_code=500, detail="Transcription failed. Please try again.")
+
+
+@app.post("/ai/speak")
+def ai_speak(body: AISpeakRequest):
+
+    if not body.text.strip():
+        raise HTTPException(status_code=422, detail="Text cannot be empty.")
+
+    try:
+        audio_bytes = stt_tts.synthesize_speech(
+            body.text,
+            body.language,
+            body.voice,
+        )
+        return Response(content=audio_bytes, media_type="audio/mpeg")
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        logger.exception("TTS synthesis failed")
+        raise HTTPException(status_code=500, detail="Speech synthesis failed. Please try again.")
+
