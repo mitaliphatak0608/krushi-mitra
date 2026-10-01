@@ -1,18 +1,19 @@
 import json
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import faiss
 import numpy as np
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
-from backend import auth_utils, database, qa_engine
+from backend import auth_utils, database, knowledge_base, qa_engine, stt_tts, voice_utils
+from backend import ai_engine
 from backend import rules as eligibility
 
 # Initialize SQLite database
@@ -43,24 +44,44 @@ with DATA_FILE.open(encoding="utf-8") as _f:
 scheme_map: dict[str, dict[str, Any]] = {s["scheme_id"]: s for s in schemes}
 
 # ---------------------------------------------------------------------------
-# Embedding model singleton — loaded once, reused for every /search request
 # ---------------------------------------------------------------------------
-@lru_cache(maxsize=1)
-def get_model() -> SentenceTransformer:
-    return SentenceTransformer(EMBEDDING_MODEL)
+# Embedding model + vector store — loaded ONCE at startup, never again
+# This eliminates the per-request cold-start delay (was ~5-15s per first call)
+# ---------------------------------------------------------------------------
+def _load_model() -> SentenceTransformer:
+    print("[startup] Loading embedding model...", flush=True)
+    m = SentenceTransformer(EMBEDDING_MODEL)
+    print("[startup] Embedding model ready.", flush=True)
+    return m
 
 
-# ---------------------------------------------------------------------------
-# Vector store helpers
-# ---------------------------------------------------------------------------
-def load_vector_store() -> tuple[faiss.Index, list[dict[str, Any]]]:
+def _load_vector_store() -> tuple[faiss.Index, list[dict[str, Any]]]:
     if not INDEX_FILE.exists() or not METADATA_FILE.exists():
         raise RuntimeError(
             "Vector store not found. Run `python backend/ingest.py` first."
         )
+    print("[startup] Loading FAISS index...", flush=True)
     index = faiss.read_index(str(INDEX_FILE))
     metadata: list[dict[str, Any]] = json.loads(METADATA_FILE.read_text(encoding="utf-8"))
+    print(f"[startup] FAISS index ready — {index.ntotal} vectors.", flush=True)
     return index, metadata
+
+
+# Singletons — assigned at startup; safe because FastAPI is single-process by default
+_EMBED_MODEL: SentenceTransformer = _load_model()
+_FAISS_INDEX: faiss.Index
+_FAISS_META:  list[dict[str, Any]]
+_FAISS_INDEX, _FAISS_META = _load_vector_store()
+
+
+def get_model() -> SentenceTransformer:
+    """Return the pre-loaded embedding model."""
+    return _EMBED_MODEL
+
+
+def load_vector_store() -> tuple[faiss.Index, list[dict[str, Any]]]:
+    """Return the pre-loaded FAISS index and metadata (no disk I/O)."""
+    return _FAISS_INDEX, _FAISS_META
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +129,8 @@ class SchemeEligibilityResult(BaseModel):
     benefit: str           # localized benefit text
     eligible: bool
     note: str              # personalised eligibility note from rules engine
+    application_status: str = "open"          # open | seasonal | active_auto | portal_closed | closed | cycle_based | unconfirmed
+    application_status_note: str = ""         # localized human-readable status description
 
 
 class RegisterRequest(BaseModel):
@@ -412,6 +435,14 @@ def check_eligibility(body: EligibilityRequest) -> list[SchemeEligibilityResult]
         name    = name_dict.get(lang)    or name_dict.get("en", scheme_id)
         benefit = benefit_dict.get(lang) or benefit_dict.get("en", "")
 
+        # Resolve localized application status note
+        app_status      = scheme.get("application_status", "open")
+        app_status_note_dict = scheme.get("application_status_note", {})
+        app_status_note = (
+            app_status_note_dict.get(lang)
+            or app_status_note_dict.get("en", "")
+        )
+
         results.append(SchemeEligibilityResult(
             scheme_id=scheme_id,
             name=name,
@@ -419,6 +450,8 @@ def check_eligibility(body: EligibilityRequest) -> list[SchemeEligibilityResult]
             benefit=benefit,
             eligible=eval_result["eligible"],
             note=eval_result["note"],
+            application_status=app_status,
+            application_status_note=app_status_note,
         ))
 
     # Sort: eligible schemes first, then ineligible
@@ -507,6 +540,7 @@ class SchemeSummaryItem(BaseModel):
     benefit: str
     eligible: bool
     note: str
+    application_status: str = "open"
 
 
 class ChatResponse(BaseModel):
@@ -522,6 +556,7 @@ class ChatResponse(BaseModel):
     documents: dict[str, list[str]] | None = None
     link: str | None = None
     score: float | None = None
+    application_status: str | None = None    # forwarded from scheme data for single-scheme results
 
 
 GREETINGS = {
@@ -536,32 +571,64 @@ ALL_SCHEMES_KEYWORDS = [
     "available schemes", "schemes available", "show schemes", "show all",
     "tell me about all", "give all schemes", "how many schemes",
     "schemes for me", "eligible schemes", "show me schemes",
-    # Marathi — all / list
+    "what scheme am i", "which scheme am i", "scheme am i eligible",
+    "schemes am i eligible", "scheme can i get", "schemes can i get",
+    "scheme will i get", "schemes will i get", "scheme do i qualify",
+    "schemes do i qualify", "am i eligible for any scheme",
+    "any scheme for me", "any schemes for me", "which scheme for me",
+    "what scheme for me", "scheme for farmer", "schemes for farmer",
+    "which schemes can i", "what schemes can i", "scheme i can apply",
+    "schemes i can apply", "eligible for which scheme", "eligible for which schemes",
+    "tell me schemes", "give me schemes", "check my eligibility",
+    "my eligibility", "my scheme", "my schemes", "schemes i qualify",
+    "scheme i qualify", "what am i eligible", "what schemes am i",
+    # Marathi — all / list / eligible
     "सर्व योजना", "सगळ्या योजना", "सर्व शासकीय योजना", "योजनांची यादी",
     "सर्व योजनांची माहिती", "कोणत्या योजना", "उपलब्ध योजना", "सर्व माहिती",
     "कोणत्या योजनांसाठी", "माझ्यासाठी कोणत्या योजना",
-    # Hindi — all / list
+    "मी कोणत्या योजनांसाठी पात्र", "मला कोणती योजना", "कोणती योजना मिळेल",
+    "कोणत्या योजना मला मिळतील", "माझ्यासाठी कोणती योजना", "योजना पात्रता",
+    "कोणत्या योजनांसाठी पात्र आहे", "कोणती योजना लागू होते",
+    "माझी पात्रता", "मला पात्र योजना", "पात्र योजना कोणत्या",
+    # Hindi — all / list / eligible
     "सभी योजना", "सभी योजनाएं", "योजनाओं की सूची", "कौन सी योजनाएं",
     "कुल योजनाएं", "योजनाओं के नाम", "सारी योजनाएं", "मेरे लिए योजनाएं",
+    "कौन सी योजना मिलेगी", "मुझे कौन सी योजना", "किस योजना के लिए पात्र",
+    "कौन सी योजना के लिए पात्र", "मेरी पात्रता", "पात्र योजनाएं",
+    "कौन सी योजना मिल सकती", "कौन सी योजनाओं के लिए पात्र",
+    "मेरे लिए कौन सी योजना", "मुझे कौन सी योजनाएं", "योजना पात्रता",
+    # Romanized Marathi (phonetically typed)
+    "mala konti yojana", "konti yojana milel", "konty yojnansathi",
+    "maze patra", "mazya sathi yojana", "patra ahe ka", "yojana milel ka",
+    "konte yojana", "mla konti yojana",
+    # Romanized Hindi (phonetically typed)
+    "mujhe kaun si yojana", "kaun si yojana milegi", "kaunsi yojana",
+    "kis yojana ke liye", "patra hun kya", "yojana milegi kya", "kon si yojana",
 ]
 
 # Queries specifically asking WHY a farmer is NOT eligible for schemes
 INELIGIBLE_REASONS_KEYWORDS = [
     # English
-    "why not eligible", "why am i not", "not eligible for", "ineligible",
-    "which schemes not", "which scheme not", "not qualify", "don't qualify",
-    "do not qualify", "why can't i", "why cannot", "reason not eligible",
-    "not getting", "why i am not", "why am i ineligible", "not approved",
-    "cannot get", "can't get", "which schemes am i not", "schemes i am not",
-    "schemes i'm not", "not covered", "excluded from", "what makes me ineligible",
+    "why not eligible", "why am i not", "not eligible for",
+    "ineligible", "which schemes not", "which scheme not",
+    "not qualify", "don't qualify", "do not qualify",
+    "why can't i", "why cannot", "reason not eligible",
+    "not getting", "why i am not", "why am i ineligible",
+    "not approved", "cannot get", "can't get",
+    "which schemes am i not", "schemes i am not", "schemes i'm not",
+    "not covered", "excluded from", "what makes me ineligible",
+    "why didn't i", "why don't i qualify", "not entitled",
+    "not getting benefit", "benefit not coming", "why rejected",
     # Marathi
-    "का पात्र नाही", "पात्र का नाही", "पात्र नाही का", "कोणत्या योजनांसाठी पात्र नाही",
-    "अपात्र का", "अपात्र आहे का", "का मिळत नाही", "का मिळणार नाही",
-    "कारण काय", "नाकारले का", "का नाही पात्र",
+    "का पात्र नाही", "पात्र का नाही", "पात्र नाही का",
+    "कोणत्या योजनांसाठी पात्र नाही", "अपात्र का", "अपात्र आहे का",
+    "का मिळत नाही", "का मिळणार नाही", "कारण काय", "नाकारले का",
+    "का नाही पात्र", "का मिळाले नाही", "का लाभ मिळत नाही",
     # Hindi
-    "क्यों पात्र नहीं", "पात्र क्यों नहीं", "अपात्र क्यों", "क्यों नहीं मिलेगा",
-    "कौन सी योजना नहीं", "किन योजनाओं के लिए नहीं", "क्यों नहीं मिलता",
-    "कारण बताएं", "अयोग्य क्यों", "क्यों नहीं पात्र",
+    "क्यों पात्र नहीं", "पात्र क्यों नहीं", "अपात्र क्यों",
+    "क्यों नहीं मिलेगा", "कौन सी योजना नहीं", "किन योजनाओं के लिए नहीं",
+    "क्यों नहीं मिलता", "कारण बताएं", "अयोग्य क्यों", "क्यों नहीं पात्र",
+    "क्यों नहीं मिला", "लाभ क्यों नहीं", "क्यों वंचित",
 ]
 
 
@@ -615,6 +682,7 @@ def chat(body: ChatRequest) -> ChatResponse:
                 benefit=ben_val,
                 eligible=False,
                 note=eval_res["note"],
+                application_status=scheme.get("application_status", "open"),
             ))
 
         ineligible_count = len(ineligible_items)
@@ -654,13 +722,27 @@ def chat(body: ChatRequest) -> ChatResponse:
             schemes=ineligible_items,
         )
 
-    # 3. 'All schemes' / 'List schemes' overview intent check
-    is_all_schemes = any(k in raw_query for k in ALL_SCHEMES_KEYWORDS) or (
-        ("all" in raw_query or "every" in raw_query or "list" in raw_query) and "scheme" in raw_query
-    ) or (
-        ("सर्व" in raw_query or "सगळ्या" in raw_query) and "योजना" in raw_query
-    ) or (
-        ("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and "योजना" in raw_query
+    # 3. 'All schemes' / 'List schemes' / 'What am I eligible for' overview intent check
+    _scheme_words = {"scheme", "schemes", "yojana", "योजना", "योजनाएं", "योजनांसाठी"}
+    _eligible_words = {"eligible", "qualify", "patra", "पात्र", "मिलेगा", "मिळेल", "मिळतील", "milega"}
+    _query_words = set(raw_query.replace("?", "").replace("!", "").split())
+
+    is_all_schemes = (
+        any(k in raw_query for k in ALL_SCHEMES_KEYWORDS)
+        or (({"all", "every", "list"} & _query_words) and ("scheme" in raw_query or "yojana" in raw_query))
+        # Pattern: "eligible" + "scheme/yojana" — "what scheme am I eligible for"
+        or (_eligible_words & _query_words and _scheme_words & _query_words)
+        # Pattern: "eligible" + "which/what/any/konti" — "am I eligible for any"
+        or ({"eligible", "qualify", "पात्र"} & _query_words
+            and {"which", "what", "any", "konti", "कोणती", "कौन"} & _query_words)
+        # Marathi combos
+        or (("सर्व" in raw_query or "सगळ्या" in raw_query) and "योजना" in raw_query)
+        or ("माझ्यासाठी" in raw_query and "योजना" in raw_query)
+        or ("मला" in raw_query and ("योजना" in raw_query or "पात्र" in raw_query))
+        # Hindi combos
+        or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and "योजना" in raw_query)
+        or ("मुझे" in raw_query and "योजना" in raw_query)
+        or ("मेरे लिए" in raw_query and "योजना" in raw_query)
     )
 
     if is_all_schemes:
@@ -681,7 +763,8 @@ def chat(body: ChatRequest) -> ChatResponse:
                 category=scheme.get("category", ""),
                 benefit=ben_val,
                 eligible=eval_res["eligible"],
-                note=eval_res["note"]
+                note=eval_res["note"],
+                application_status=scheme.get("application_status", "open"),
             ))
 
         # Sort eligible first
@@ -721,6 +804,7 @@ def chat(body: ChatRequest) -> ChatResponse:
     best_entry: dict[str, Any] = metadata[best_idx]
     scheme:     dict[str, Any] = best_entry["original_scheme"]
     scheme_id:  str             = best_entry["scheme_id"]
+    scheme:     dict[str, Any] = scheme_map.get(scheme_id, best_entry.get("original_scheme", {}))
 
     # Apply eligibility rule
     result = eligibility.evaluate(scheme_id, body.profile)
@@ -732,6 +816,7 @@ def chat(body: ChatRequest) -> ChatResponse:
         profile=body.profile,
         eval_result=result,
         lang=lang,
+        application_status=scheme.get("application_status", "open"),
     )
 
     return ChatResponse(
@@ -746,4 +831,189 @@ def chat(body: ChatRequest) -> ChatResponse:
         documents=scheme.get("documents_required"),
         link=scheme.get("official_link"),
         score=best_score,
+        application_status=scheme.get("application_status", "open"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Voice / AI chat endpoints (added by voice-assistant-integration branch)
+# ---------------------------------------------------------------------------
+
+class AIChatRequest(BaseModel):
+    message: str
+    language: str = "en"
+    profile: dict[str, Any] = {}
+    voice: str | None = None
+
+
+class AIChatResponse(BaseModel):
+    answer: str
+    language: str
+    intent: str
+    sources: list[Any] = []
+    grounded: bool = True
+    analysis: dict[str, Any] | None = None
+    speech_text: str | None = None
+
+
+class AITranscribeResponse(BaseModel):
+    text: str
+    language: str
+
+
+class AISpeakRequest(BaseModel):
+    text: str
+    language: str = "en"
+    voice: str | None = None
+
+
+def _require_ai():
+    if not ai_engine.is_ai_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="AI chat is disabled. Set AI_CHAT_ENABLED=true in backend/.env",
+        )
+
+
+@app.post("/ai/chat", response_model=AIChatResponse)
+def ai_chat(body: AIChatRequest):
+    _require_ai()
+
+    try:
+        analysis = ai_engine.analyze_query(body.message, body.language)
+
+        faiss_results = None
+        if analysis.get("intent") in ("scheme_query", "eligibility_check"):
+            try:
+                model_st = get_model()
+                index, meta = load_vector_store()
+                q_vec = model_st.encode([body.message], normalize_embeddings=True)
+                scores, indices = index.search(q_vec, min(5, len(meta)))
+
+                seen: set[str] = set()
+                faiss_results = []
+                for score, idx in zip(scores[0], indices[0]):
+                    if idx < 0:
+                        continue
+                    entry = meta[idx]
+                    sid = entry["scheme_id"]
+                    if sid in seen:
+                        continue
+                    seen.add(sid)
+                    faiss_results.append({"scheme_id": sid, "score": float(score)})
+                    if len(faiss_results) >= 3:
+                        break
+            except Exception:
+                faiss_results = None
+
+        agri_kb_results = None
+        agri_intents = {
+            "general_agriculture", "crop_disease", "pest_control",
+            "fertilizer", "irrigation", "crop_protection", "sowing",
+            "harvesting", "soil", "seed", "livestock"
+        }
+
+        if analysis.get("intent") in agri_intents:
+            try:
+                agri_kb_results = knowledge_base.search_agri_knowledge(
+                    query=body.message,
+                    language=body.language,
+                    crop=analysis.get("crop"),
+                    use_test=False,
+                )
+            except Exception:
+                agri_kb_results = None
+
+        context = ai_engine.gather_context(
+            analysis, body.profile, faiss_results, agri_kb_results
+        )
+
+        result = ai_engine.generate_response(
+            body.message, analysis, context, body.profile, agri_kb_results
+        )
+
+        speech_text = voice_utils.simplify_ai_response(
+            result["answer"], result["language"]
+        )
+
+        return AIChatResponse(
+            answer=result["answer"],
+            language=result["language"],
+            intent=result["intent"],
+            sources=result["sources"],
+            grounded=result["grounded"],
+            analysis=result.get("analysis"),
+            speech_text=speech_text,
+        )
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except Exception:
+        logger.exception("AI chat failed")
+        raise HTTPException(status_code=500, detail="AI processing failed. Please try again.")
+
+
+@app.post("/ai/transcribe", response_model=AITranscribeResponse)
+async def ai_transcribe(file: UploadFile = File(...)):
+    _require_ai()
+
+    ctype = (file.content_type or "").lower()
+    if ctype and not ctype.startswith("audio/"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Expected audio file, received: {ctype}",
+        )
+
+    audio_bytes = await file.read()
+
+    if not audio_bytes:
+        raise HTTPException(status_code=422, detail="Empty audio file.")
+
+    if len(audio_bytes) > stt_tts.MAX_AUDIO_SIZE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file too large. Max {stt_tts.MAX_AUDIO_SIZE_BYTES // (1024*1024)} MB.",
+        )
+
+    try:
+        text, lang = stt_tts.transcribe_audio(
+            audio_bytes,
+            filename=file.filename or "audio.webm",
+        )
+        return AITranscribeResponse(text=text, language=lang)
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        logger.exception("Transcription failed")
+        raise HTTPException(status_code=500, detail="Transcription failed. Please try again.")
+
+
+@app.post("/ai/speak")
+def ai_speak(body: AISpeakRequest):
+    if not body.text.strip():
+        raise HTTPException(status_code=422, detail="Text cannot be empty.")
+
+    try:
+        audio_bytes = stt_tts.synthesize_speech(
+            body.text,
+            body.language,
+            body.voice,
+        )
+        return Response(content=audio_bytes, media_type="audio/mpeg")
+
+    except stt_tts.ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except stt_tts.ExternalAPIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        logger.exception("TTS synthesis failed")
+        raise HTTPException(status_code=500, detail="Speech synthesis failed. Please try again.")

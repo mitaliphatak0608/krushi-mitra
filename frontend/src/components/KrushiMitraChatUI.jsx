@@ -4,6 +4,7 @@ import {
   Leaf, Send, Mic, CheckCircle2, XCircle, AlertCircle, MapPin,
   Sprout, ExternalLink, ChevronDown, User, ArrowLeft, Loader2
 } from "lucide-react";
+import VoiceAssistant from "./VoiceAssistant";
 
 const CHAT_ENDPOINT    = "http://localhost:8000/chat";
 const SCHEMES_ENDPOINT = "http://localhost:8000/schemes";
@@ -19,6 +20,39 @@ const MUTED       = "#5C6F5E";
 
 const REGIONS    = ["Marathwada", "Vidarbha", "Western Maharashtra"];
 const CATEGORIES = ["General", "SC", "ST", "OBC"];
+
+// ---------------------------------------------------------------------------
+// Application status badge helper + pill component
+// ---------------------------------------------------------------------------
+function getStatusConfig(status) {
+  const cfg = {
+    open:          { emoji: "🟢", label: "Open",                        color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+    seasonal:      { emoji: "🟢", label: "Open / Seasonal",             color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+    active_auto:   { emoji: "🟢", label: "Active — Auto-linked",        color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+    portal_closed: { emoji: "🟠", label: "Portal Closed",               color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+    closed:        { emoji: "🔴", label: "Closed",                      color: "#991b1b", bg: "#fee2e2", border: "#fca5a5" },
+    cycle_based:   { emoji: "🟡", label: "Cycle-Based",                 color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+    unconfirmed:   { emoji: "🟡", label: "Window Not Confirmed",        color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+  };
+  return cfg[status] || cfg.open;
+}
+
+function StatusPill({ status, small = false }) {
+  const c = getStatusConfig(status);
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: "3px",
+      fontSize: small ? "0.62rem" : "0.68rem", fontWeight: 700,
+      padding: small ? "0.12rem 0.4rem" : "0.18rem 0.55rem",
+      borderRadius: "20px",
+      backgroundColor: c.bg, color: c.color,
+      border: `1px solid ${c.border}`,
+      whiteSpace: "nowrap",
+    }}>
+      {c.emoji} {c.label}
+    </span>
+  );
+}
 
 const UI_TEXT = {
   en: {
@@ -82,6 +116,11 @@ function VerdictCard({ response, lang }) {
       </div>
 
       <div className="p-3 space-y-2">
+        {/* Application status pill */}
+        <div className="flex items-center gap-2">
+          <StatusPill status={response.application_status || "open"} />
+        </div>
+
         {/* Benefit */}
         {benefitText && <p className="text-sm" style={{ color: INK }}>{benefitText}</p>}
 
@@ -157,12 +196,13 @@ function AllSchemesCard({ response, lang, onSelectScheme }) {
               backgroundColor: s.eligible ? "#F9FBF8" : "#FFFBFB"
             }}
           >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-bold" style={{ color: INK }}>{s.name}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border text-gray-600 font-medium">
                   {s.category}
                 </span>
+                <StatusPill status={s.application_status || "open"} small={true} />
               </div>
               <span
                 className="text-[10px] px-2 py-0.5 rounded font-bold"
@@ -229,12 +269,13 @@ function IneligibleReasonsCard({ response, lang, onSelectScheme }) {
             style={{ borderColor: "#E8B4A0", backgroundColor: "#FFFBFB" }}
           >
             {/* Scheme name + category */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs font-bold" style={{ color: INK }}>{s.name}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border text-gray-600 font-medium">
                   {s.category}
                 </span>
+                <StatusPill status={s.application_status || "open"} small={true} />
               </div>
               <span className="text-[10px] px-2 py-0.5 rounded font-bold"
                 style={{ backgroundColor: "#FEF2F2", color: "#8B4A3D" }}>
@@ -314,6 +355,7 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
   const [input, setInput]             = useState("");
   const [isLoading, setIsLoading]     = useState(false);
   const [quickChips, setQuickChips]   = useState([]);
+  const [showVoice, setShowVoice]     = useState(false);
   const [messages, setMessages]       = useState([
     { id: 1, from: "bot", text: t.greeting },
   ]);
@@ -569,7 +611,14 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
             className="flex-1 text-sm outline-none bg-transparent"
             style={{ color: INK }}
           />
-          <Mic size={16} color={MUTED} />
+          <button
+              onClick={() => setShowVoice(true)}
+              className="flex items-center justify-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+              title="Voice Assistant"
+              aria-label="Open Voice Assistant"
+            >
+              <Mic size={16} color={MUTED} />
+            </button>
         </div>
         <button
           onClick={() => handleSend()}
@@ -583,6 +632,17 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
           }
         </button>
       </div>
+
+      {/* ---- Voice Assistant overlay ---- */}
+      {showVoice && (
+        <VoiceAssistant
+          lang={lang}
+          setLang={setLang}
+          profile={localProfile}
+          useAI={false}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
     </div>
   );
 }
