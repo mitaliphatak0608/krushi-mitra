@@ -71,6 +71,21 @@ const DASH_TEXT = {
   }
 };
 
+// --- STATUS BADGE HELPER ---
+// Returns display config for a scheme's application_status code
+function getStatusBadge(status) {
+  const cfg = {
+    open:          { emoji: "🟢", label: "Open",                        color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+    seasonal:      { emoji: "🟢", label: "Open / Seasonal",             color: "#0369a1", bg: "#e0f2fe", border: "#7dd3fc" },
+    active_auto:   { emoji: "🟢", label: "Active — Auto-linked",        color: "#15803d", bg: "#dcfce7", border: "#86efac" },
+    portal_closed: { emoji: "🟠", label: "Portal Closed — Reopening Soon", color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+    closed:        { emoji: "🔴", label: "Closed",                      color: "#991b1b", bg: "#fee2e2", border: "#fca5a5" },
+    cycle_based:   { emoji: "🟡", label: "Cycle-Based",                 color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+    unconfirmed:   { emoji: "🟡", label: "Window Not Confirmed",        color: "#92400e", bg: "#fef3c7", border: "#fcd34d" },
+  };
+  return cfg[status] || cfg.open;
+}
+
 // --- 3. SIDEBAR COMPONENT ---
 function Sidebar({ activeTab, setActiveTab, onLogout, t }) {
   const navItems = [
@@ -266,17 +281,29 @@ export default function FarmerDashboard({ onLogout, lang, setLang, userData, set
             {/* Eligible scheme cards */}
             {!eligLoading && !eligError && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {eligibleSchemes.map((scheme) => (
+                {eligibleSchemes.map((scheme) => {
+                  const badge = getStatusBadge(scheme.application_status);
+                  return (
                   <div key={scheme.scheme_id} className="dash-card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                       <div style={{ padding: '0.5rem', backgroundColor: '#EAF3E4', borderRadius: '10px', marginTop: '0.1rem' }}>
                         <Check size={20} color="var(--dash-primary)" />
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                           <p style={{ fontWeight: 800, color: 'var(--dash-text)', fontSize: '1.05rem' }}>{scheme.name}</p>
                           <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '6px', backgroundColor: '#EAF3E4', color: 'var(--dash-primary)' }}>
                             {scheme.category}
+                          </span>
+                          {/* Application status badge */}
+                          <span style={{
+                            fontSize: '0.68rem', fontWeight: 700,
+                            padding: '0.18rem 0.55rem', borderRadius: '20px',
+                            backgroundColor: badge.bg, color: badge.color,
+                            border: `1px solid ${badge.border}`,
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {badge.emoji} {badge.label}
                           </span>
                         </div>
                         <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--dash-primary)', marginTop: '0.2rem' }}>
@@ -285,6 +312,12 @@ export default function FarmerDashboard({ onLogout, lang, setLang, userData, set
                         <p style={{ fontSize: '0.8rem', color: 'var(--dash-muted)', marginTop: '0.15rem' }}>
                           ✓ {scheme.note}
                         </p>
+                        {/* Status note — only shown for non-open statuses */}
+                        {scheme.application_status_note && scheme.application_status !== 'open' && (
+                          <p style={{ fontSize: '0.75rem', color: badge.color, marginTop: '0.25rem', fontStyle: 'italic' }}>
+                            {scheme.application_status_note}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -294,7 +327,8 @@ export default function FarmerDashboard({ onLogout, lang, setLang, userData, set
                       </button>
                     </Link>
                   </div>
-                ))}
+                  );
+                })}
 
                 {eligibleSchemes.length === 0 && eligibilityResults.length > 0 && (
                   <div className="dash-card" style={{ textAlign: 'center', padding: '2rem' }}>

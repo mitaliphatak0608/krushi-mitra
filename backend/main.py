@@ -590,6 +590,12 @@ ALL_SCHEMES_KEYWORDS = [
     "कोणत्या योजना मला मिळतील", "माझ्यासाठी कोणती योजना", "योजना पात्रता",
     "कोणत्या योजनांसाठी पात्र आहे", "कोणती योजना लागू होते",
     "माझी पात्रता", "मला पात्र योजना", "पात्र योजना कोणत्या",
+    "कोणत्या कोणत्या", "कोणत्या स्कीम", "कोणत्या स्कीमसाठी", "कोणत्या स्कीम्स",
+    "कोणत्या कोणत्या स्कीमसाठी", "कोणत्या योजनेसाठी", "कोणत्या योजनांसाठी",
+    "स्कीमसाठी एलिजिबल", "योजनेसाठी एलिजिबल", "योजनांसाठी एलिजिबल",
+    "एलिजिबल आहे", "एलिजिबल आहेत", "मी कोणत्या", "मी कोणत्या कोणत्या",
+    "कशासाठी पात्र", "कोणत्या लाभासाठी",
+    "किन स्कीम", "किस स्कीम", "स्कीम के लिए एलिजिबल", "एलिजिबल हूं", "एलिजिबल हैं",
     # Hindi — all / list / eligible
     "सभी योजना", "सभी योजनाएं", "योजनाओं की सूची", "कौन सी योजनाएं",
     "कुल योजनाएं", "योजनाओं के नाम", "सारी योजनाएं", "मेरे लिए योजनाएं",
@@ -796,43 +802,41 @@ def chat(body: ChatRequest) -> ChatResponse:
         )
 
     # 3. 'All schemes' / 'List schemes' / 'What am I eligible for' overview intent check
-    _scheme_words = {"scheme", "schemes", "yojana", "योजना", "योजनाएं", "योजनांसाठी"}
-    _eligible_words = {"eligible", "qualify", "patra", "पात्र", "मिलेगा", "मिळेल", "मिळतील", "milega"}
-    _query_words = set(raw_query.replace("?", "").replace("!", "").split())
+    _alias_match = _alias_lookup(body.query)
 
-    is_all_schemes = (
+    _scheme_words = {
+        "scheme", "schemes", "yojana", "योजना", "योजनाएं", "योजनांसाठी", "योजनेसाठी",
+        "योजनांना", "स्कीम", "स्कीमसाठी", "स्कीम्स"
+    }
+    _eligible_words = {
+        "eligible", "qualify", "patra", "पात्र", "पात्रता", "एलिजिबल",
+        "मिलेगा", "मिळेल", "मिळतील", "लागू", "milega"
+    }
+    _which_words = {
+        "which", "what", "any", "konti", "konte", "कोणती", "कोणत्या", "कोणते",
+        "कोणत्याही", "कोणत्या-कोणत्या", "कौन", "कौनसी", "कौन-सी", "कौन सी", "किस", "किन"
+    }
+    _query_words = set(raw_query.replace("?", "").replace("!", "").replace(",", "").split())
+
+    # If an exact specific scheme was mentioned (e.g. "PM-KISAN", "KCC"), it is NOT an all-schemes query
+    is_all_schemes = (_alias_match is None) and (
         any(k in raw_query for k in ALL_SCHEMES_KEYWORDS)
-        or (({"all", "every", "list"} & _query_words) and ("scheme" in raw_query or "yojana" in raw_query))
-        # Pattern: "eligible" + "scheme/yojana" — "what scheme am I eligible for"
-        or (_eligible_words & _query_words and _scheme_words & _query_words)
-        # Pattern: "eligible" + "which/what/any/konti" — "am I eligible for any"
-        or ({"eligible", "qualify", "पात्र"} & _query_words
-            and {"which", "what", "any", "konti", "कोणती", "कौन"} & _query_words)
+        or (({"all", "every", "list"} & _query_words) and ("scheme" in raw_query or "yojana" in raw_query or "स्कीम" in raw_query))
+        # Pattern: "eligible" + "scheme/yojana" — "what scheme am I eligible for" / "कोणत्या स्कीमसाठी एलिजिबल"
+        or bool(_eligible_words & _query_words and _scheme_words & _query_words)
+        # Pattern: "eligible" + "which/what/konti/konte/कौन"
+        or bool(_eligible_words & _query_words and _which_words & _query_words)
+        # Pattern: "which/what" + "scheme/yojana" — "which schemes can I get"
+        or bool(_which_words & _query_words and _scheme_words & _query_words)
         # Marathi combos
-        or (("सर्व" in raw_query or "सगळ्या" in raw_query) and "योजना" in raw_query)
-        or ("माझ्यासाठी" in raw_query and "योजना" in raw_query)
-        # 'मला' (I/me in Marathi) only triggers all-schemes when NOT about a specific scheme
-        or ("मला" in raw_query and ("योजना" in raw_query or "पात्र" in raw_query)
-            and not any(w in raw_query for w in ["बद्दल", "सांगा", "माहिती", "काय", "कसे"])
-            and not any(h in raw_query.lower() for h in [
-                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
-                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
-            ]))
-        # Hindi combos — explicit 'all/list' words always trigger
-        or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and "योजना" in raw_query)
-        # 'मुझे/मेरे लिए' only trigger when NOT asking about a specific scheme
-        or ("मुझे" in raw_query and "योजना" in raw_query
-            and not any(w in raw_query for w in ["बारे", "जानकारी", "बताइए", "बताओ", "क्या", "कैसे"])
-            and not any(h in raw_query.lower() for h in [
-                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
-                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
-            ]))
-        or ("मेरे लिए" in raw_query and "योजना" in raw_query
-            and not any(w in raw_query for w in ["बारे", "जानकारी", "बताइए", "बताओ", "क्या", "कैसे"])
-            and not any(h in raw_query.lower() for h in [
-                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
-                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
-            ]))
+        or (("सर्व" in raw_query or "सगळ्या" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or ("माझ्यासाठी" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or ("मला" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query or "पात्र" in raw_query or "एलिजिबल" in raw_query))
+        or ("मी" in raw_query and ("पात्र" in raw_query or "एलिजिबल" in raw_query))
+        # Hindi combos
+        or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or ("मुझे" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query or "पात्र" in raw_query or "एलिजिबल" in raw_query))
+        or ("मेरे लिए" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query))
     )
 
     if is_all_schemes:

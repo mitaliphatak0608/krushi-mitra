@@ -55,7 +55,8 @@ def synthesize_answer(
     scheme: dict[str, Any],
     profile: dict[str, Any],
     eval_result: dict[str, Any],
-    lang: str = "en"
+    lang: str = "en",
+    application_status: str = "open",
 ) -> str:
     """
     Synthesizes a short, simple, plain-language conversational answer
@@ -83,6 +84,37 @@ def synthesize_answer(
     is_eligible = eval_result.get("eligible", True)
     note = eval_result.get("note", "")
 
+    # --- Application status warning banner (shown for apply-intent answers) ---
+    CLOSED_STATUSES = {"closed", "portal_closed", "cycle_based", "unconfirmed"}
+    _status_warning = {
+        "closed": {
+            "en": "⚠️ Applications are currently CLOSED for this scheme. Check the official portal for reopening updates.",
+            "hi": "⚠️ इस योजना के लिए आवेदन फिलहाल बंद हैं। पुनः खुलने के लिए आधिकारिक पोर्टल देखें।",
+            "mr": "⚠️ या योजनेसाठी अर्ज सध्या बंद आहेत. पुन्हा सुरू होण्यासाठी अधिकृत पोर्टल तपासा.",
+        },
+        "portal_closed": {
+            "en": "⚠️ MahaDBT portal is currently NOT accepting fresh applications for this scheme. It will reopen soon — check mahadbt.maharashtra.gov.in for updates.",
+            "hi": "⚠️ महाडीबीटी पोर्टल अभी इस योजना के नए आवेदन स्वीकार नहीं कर रहा। जल्द खुलेगा — mahadbt.maharashtra.gov.in पर अपडेट देखें।",
+            "mr": "⚠️ महाडीबीटी पोर्टल सध्या या योजनेसाठी नवीन अर्ज स्वीकारत नाही. लवकरच खुले होईल — mahadbt.maharashtra.gov.in तपासा.",
+        },
+        "cycle_based": {
+            "en": "⚠️ This is a cycle-based scheme — applications are only accepted when a new government notification is issued. Check current Maharashtra notifications before applying.",
+            "hi": "⚠️ यह चक्र-आधारित योजना है — आवेदन केवल तभी स्वीकार किए जाते हैं जब नई सरकारी अधिसूचना जारी हो। आवेदन से पहले वर्तमान महाराष्ट्र अधिसूचनाएं देखें।",
+            "mr": "⚠️ ही चक्र-आधारित योजना आहे — नवीन शासन अधिसूचना जारी झाल्यावरच अर्ज स्वीकारले जातात. अर्ज करण्यापूर्वी सध्याच्या महाराष्ट्र अधिसूचना तपासा.",
+        },
+        "unconfirmed": {
+            "en": "⚠️ The current application window for this scheme is not confirmed. Check mahadbt.maharashtra.gov.in or pgsindia-ncof.gov.in for the latest status before applying.",
+            "hi": "⚠️ इस योजना की वर्तमान आवेदन विंडो की पुष्टि नहीं है। आवेदन से पहले mahadbt.maharashtra.gov.in पर नवीनतम स्थिति देखें।",
+            "mr": "⚠️ या योजनेची सध्याची अर्ज विंडो निश्चित नाही. अर्ज करण्यापूर्वी mahadbt.maharashtra.gov.in वर नवीनतम स्थिती तपासा.",
+        },
+    }
+
+    def _get_status_warning() -> str:
+        if application_status in CLOSED_STATUSES:
+            w = _status_warning.get(application_status, {})
+            return w.get(lang) or w.get("en", "")
+        return ""
+
     # Helper: check if ANY keyword from a set appears in the raw query
     def has_any(kw_set: set) -> bool:
         return any(k in raw for k in kw_set)
@@ -107,27 +139,29 @@ def synthesize_answer(
 
     # 2. How to apply question
     if has_any(APPLY_KEYWORDS):
+        status_warn = _get_status_warning()
         if lang == "mr":
-            return (
+            apply_text = (
                 f"📝 {name} साठी अर्ज करणे सोपे आहे:\n"
                 f"1️⃣ {link} या अधिकृत पोर्टलवर जा.\n"
                 f"2️⃣ आधार कार्ड व ७/१२ उतारा तयार ठेवा.\n"
                 f"3️⃣ किंवा जवळच्या सीएससी केंद्रावर भेट द्या."
             )
         elif lang == "hi":
-            return (
+            apply_text = (
                 f"📝 {name} के लिए आवेदन कैसे करें:\n"
                 f"1️⃣ आधिकारिक पोर्टल {link} पर जाएं।\n"
                 f"2️⃣ आधार कार्ड और 7/12 भूमि रिकॉर्ड तैयार रखें।\n"
                 f"3️⃣ या नजदीकी सीएससी केंद्र पर जाएं।"
             )
         else:
-            return (
+            apply_text = (
                 f"📝 How to apply for {name}:\n"
                 f"1️⃣ Visit the official portal: {link}\n"
                 f"2️⃣ Keep your Aadhaar Card and 7/12 land record ready.\n"
                 f"3️⃣ Or visit your nearest Gram Panchayat / CSC center."
             )
+        return f"{status_warn}\n\n{apply_text}".strip() if status_warn else apply_text
 
     # 3. Money / Subsidy / How much question
     if has_any(MONEY_KEYWORDS):

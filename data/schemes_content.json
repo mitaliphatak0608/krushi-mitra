@@ -9,9 +9,9 @@
     "type": "Central",
     "category": "Income Support",
     "benefit_text": {
-      "en": "₹6,000 per year, paid directly to the farmer's bank account in 3 installments of ₹2,000 each.",
-      "hi": "हर साल ₹6,000, किसान के बैंक खाते में सीधे ₹2,000 की 3 किस्तों में जमा किए जाते हैं।",
-      "mr": "दरवर्षी ₹6,000, शेतकऱ्याच्या बँक खात्यात थेट ₹2,000 च्या 3 हप्त्यांमध्ये जमा केले जातात."
+      "en": "Rs.6,000 per year, paid directly to the farmer bank account in 3 installments of Rs.2,000 each.",
+      "hi": "हर साल Rs.6,000, किसान के बैंक खाते में सीधे Rs.2,000 की 3 किस्तों में जमा किए जाते हैं।",
+      "mr": "दरवर्षी Rs.6,000, शेतकऱ्याच्या बँक खात्यात थेट Rs.2,000 च्या 3 हप्त्यांमध्ये जमा केले जातात."
     },
     "eligibility_summary": {
       "en": "Available to landholding farmer families across India, including Maharashtra.",
@@ -41,7 +41,13 @@
       "hi": "केंद्र सरकार की योजना; महाराष्ट्र में समान रूप से लागू।",
       "mr": "केंद्र सरकारची योजना; महाराष्ट्रात एकसमान लागू."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "open",
+    "application_status_note": {
+      "en": "Open — New Farmer Registration is active and the 2026-27 installment is ongoing at pmkisan.gov.in.",
+      "hi": "खुला — नए किसान पंजीकरण सक्रिय हैं और 2026-27 की किस्त pmkisan.gov.in पर जारी है।",
+      "mr": "उघडे — नवीन शेतकरी नोंदणी सुरू आहे आणि 2026-27 चा हप्ता pmkisan.gov.in वर सुरू आहे."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "PMFBY",
@@ -53,14 +59,14 @@
     "type": "Central",
     "category": "Insurance",
     "benefit_text": {
-      "en": "Crop insurance covering yield loss. Farmer premium is capped at 2% for Kharif food & oilseed crops, 1.5% for Rabi food & oilseed crops, and 5% for annual commercial/horticultural crops. The government subsidizes the remaining premium.",
-      "hi": "उत्पादन हानि को कवर करने वाला फसल बीमा। किसान का प्रीमियम खरीफ खाद्य एवं तिलहन फसलों के लिए अधिकतम 2%, रबी खाद्य एवं तिलहन फसलों के लिए 1.5%, और वार्षिक वाणिज्यिक/बागवानी फसलों के लिए 5% तक सीमित है। शेष प्रीमियम सरकार द्वारा वहन किया जाता है।",
-      "mr": "उत्पादनातील नुकसान भरून काढणारा पीक विमा. शेतकऱ्याचा हप्ता खरीप अन्न व तेलबिया पिकांसाठी जास्तीत जास्त 2%, रब्बी अन्न व तेलबिया पिकांसाठी 1.5%, आणि वार्षिक व्यावसायिक/फळबाग पिकांसाठी 5% पर्यंत मर्यादित आहे. उर्वरित हप्ता शासनामार्फत भरला जातो."
+      "en": "Crop insurance covering yield loss. Farmer premium is capped at 2% for Kharif food and oilseed crops, 1.5% for Rabi food and oilseed crops, and 5% for annual commercial/horticultural crops. The government subsidizes the remaining premium.",
+      "hi": "उत्पादन हानि को कवर करने वाला फसल बीमा। किसान का प्रीमियम खरीफ खाद्य एवं तिलहन फसलों के लिए अधिकतम 2%, रबी खाद्य एवं तिलहन फसलों के लिए 1.5%, और वार्षिक वाणिज्यिक/बागवानी फसलों के लिए 5% तक सीमित है।",
+      "mr": "उत्पादनातील नुकसान भरून काढणारा पीक विमा. शेतकऱ्याचा हप्ता खरीप अन्न व तेलबिया पिकांसाठी जास्तीत जास्त 2%, रब्बी अन्न व तेलबिया पिकांसाठी 1.5%, आणि वार्षिक व्यावसायिक/फळबाग पिकांसाठी 5% पर्यंत मर्यादित आहे."
     },
     "eligibility_summary": {
       "en": "Available for notified crops in notified areas; farmer must have insurable interest in the crop (owner or tenant cultivator).",
-      "hi": "अधिसूचित क्षेत्रों में अधिसूचित फसलों के लिए उपलब्ध; किसान का फसल में बीमायोग्य हित होना आवश्यक है (मालिक या बटाईदार किसान)।",
-      "mr": "अधिसूचित क्षेत्रातील अधिसूचित पिकांसाठी उपलब्ध; शेतकऱ्याचे पिकामध्ये विमायोग्य हित असणे आवश्यक आहे (मालक किंवा कूळ शेतकरी)."
+      "hi": "अधिसूचित क्षेत्रों में अधिसूचित फसलों के लिए उपलब्ध; किसान का फसल में बीमायोग्य हित होना आवश्यक है।",
+      "mr": "अधिसूचित क्षेत्रातील अधिसूचित पिकांसाठी उपलब्ध; शेतकऱ्याचे पिकामध्ये विमायोग्य हित असणे आवश्यक आहे."
     },
     "documents_required": {
       "en": [
@@ -85,7 +91,13 @@
       "hi": "केंद्र सरकार की योजना; प्रीमियम पर सरकार द्वारा सब्सिडी दी जाती है।",
       "mr": "केंद्र सरकारची योजना; हप्त्यावर शासनामार्फत अनुदान दिले जाते."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "seasonal",
+    "application_status_note": {
+      "en": "Open / Seasonal — Enrollment available at pmfby.gov.in. Actual deadline depends on the notified crop, season, and state cutoff date.",
+      "hi": "खुला / मौसमी — pmfby.gov.in पर नामांकन उपलब्ध है। वास्तविक अंतिम तिथि अधिसूचित फसल, मौसम और राज्य की कट-ऑफ तारीख पर निर्भर करती है।",
+      "mr": "उघडे / हंगामी — pmfby.gov.in वर नावनोंदणी उपलब्ध आहे. वास्तविक अंतिम मुदत अधिसूचित पीक, हंगाम व राज्याच्या कट-ऑफ तारखेवर अवलंबून आहे."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "KCC",
@@ -97,7 +109,7 @@
     "type": "Central",
     "category": "Credit",
     "benefit_text": {
-      "en": "Short-term crop loans at a subsidized interest rate through a dedicated credit card linked to the farmer's landholding.",
+      "en": "Short-term crop loans at a subsidized interest rate through a dedicated credit card linked to the farmer landholding.",
       "hi": "किसान की भूमि से जुड़े एक विशेष क्रेडिट कार्ड के माध्यम से रियायती ब्याज दर पर अल्पकालिक फसल ऋण।",
       "mr": "शेतकऱ्याच्या जमिनीशी संलग्न असलेल्या विशेष क्रेडिट कार्डद्वारे सवलतीच्या व्याजदरात अल्पमुदतीचे पीक कर्ज."
     },
@@ -129,7 +141,13 @@
       "hi": "केंद्र सरकार की योजना।",
       "mr": "केंद्र सरकारची योजना."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "open",
+    "application_status_note": {
+      "en": "Open — Applications accepted year-round at any nationalized or cooperative bank.",
+      "hi": "खुला — आवेदन किसी भी राष्ट्रीयकृत या सहकारी बैंक में वर्षभर स्वीकार किए जाते हैं।",
+      "mr": "उघडे — अर्ज कोणत्याही राष्ट्रीयीकृत किंवा सहकारी बँकेत वर्षभर स्वीकारले जातात."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "NAMO_SHETKARI",
@@ -141,9 +159,9 @@
     "type": "State (Maharashtra)",
     "category": "Income Support",
     "benefit_text": {
-      "en": "₹6,000 per year state top-up, paid in addition to the central PM-KISAN benefit.",
-      "hi": "प्रति वर्ष ₹6,000 का राज्य सरकार द्वारा अतिरिक्त लाभ, जो केंद्र की पीएम-किसान योजना के लाभ के साथ दिया जाता है।",
-      "mr": "दरवर्षी ₹6,000 चा राज्य शासनाकडून अतिरिक्त लाभ, जो केंद्राच्या पीएम-किसान योजनेच्या लाभासोबत दिला जातो."
+      "en": "Rs.6,000 per year state top-up, paid in addition to the central PM-KISAN benefit.",
+      "hi": "प्रति वर्ष Rs.6,000 का राज्य सरकार द्वारा अतिरिक्त लाभ, जो केंद्र की पीएम-किसान योजना के लाभ के साथ दिया जाता है।",
+      "mr": "दरवर्षी Rs.6,000 चा राज्य शासनाकडून अतिरिक्त लाभ, जो केंद्राच्या पीएम-किसान योजनेच्या लाभासोबत दिला जातो."
     },
     "eligibility_summary": {
       "en": "Same beneficiary base as PM-KISAN; auto-linked for eligible farmers.",
@@ -167,7 +185,13 @@
       "hi": "राज्य सरकार की अतिरिक्त सहायता योजना।",
       "mr": "राज्य शासनाची अतिरिक्त सहाय्य योजना."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "active_auto",
+    "application_status_note": {
+      "en": "Active — No separate application needed. Beneficiaries are auto-linked from the PM-KISAN list.",
+      "hi": "सक्रिय — अलग आवेदन की आवश्यकता नहीं। लाभार्थी पीएम-किसान सूची से स्वतः जुड़ जाते हैं।",
+      "mr": "सक्रिय — स्वतंत्र अर्जाची आवश्यकता नाही. लाभार्थी पीएम-किसान यादीतून आपोआप जोडले जातात."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "MICRO_IRRIGATION",
@@ -185,8 +209,8 @@
     },
     "eligibility_summary": {
       "en": "Landholding up to 5 hectares; higher subsidy for marginal and small farmers; extra support in drought-prone regions.",
-      "hi": "5 हेक्टेयर तक भूमि धारण करने वाले किसान पात्र; अल्प एवं छोटे किसानों के लिए अधिक अनुदान; सूखाग्रस्त क्षेत्रों में अतिरिक्त सहायता।",
-      "mr": "5 हेक्टरपर्यंत जमीन धारण करणारे शेतकरी पात्र; अल्प व लहान शेतकऱ्यांसाठी जास्त अनुदान; दुष्काळग्रस्त भागात अतिरिक्त मदत."
+      "hi": "5 हेक्टेयर तक भूमि धारण करने वाले किसान पात्र; अल्प एवं छोटे किसानों के लिए अधिक अनुदान।",
+      "mr": "5 हेक्टरपर्यंत जमीन धारण करणारे शेतकरी पात्र; अल्प व लहान शेतकऱ्यांसाठी जास्त अनुदान."
     },
     "documents_required": {
       "en": [
@@ -213,11 +237,17 @@
     },
     "official_link": "mahadbt.maharashtra.gov.in",
     "status_notes": {
-      "en": "Budget-dependent; approved on a first-come-first-served basis since 2025-26. Application windows open and close through the year.",
-      "hi": "बजट पर निर्भर; 2025-26 से 'पहले आओ, पहले पाओ' के आधार पर स्वीकृति दी जाती है। आवेदन की समय-सीमा वर्ष भर खुलती और बंद होती रहती है।",
-      "mr": "अर्थसंकल्पावर अवलंबून; 2025-26 पासून 'प्रथम येणाऱ्यास प्रथम प्राधान्य' या तत्त्वावर मंजुरी दिली जाते. अर्ज करण्याचा कालावधी वर्षभर उघडतो व बंद होतो."
+      "en": "Budget-dependent; approved on a first-come-first-served basis since 2025-26.",
+      "hi": "बजट पर निर्भर; 2025-26 से पहले आओ पहले पाओ के आधार पर स्वीकृति दी जाती है।",
+      "mr": "अर्थसंकल्पावर अवलंबून; 2025-26 पासून प्रथम येणाऱ्यास प्रथम प्राधान्य या तत्त्वावर मंजुरी दिली जाते."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "portal_closed",
+    "application_status_note": {
+      "en": "Portal Closed — MahaDBT is not currently accepting fresh applications; will reopen soon. Scheme remains active in the 2026-27 Maharashtra plan.",
+      "hi": "पोर्टल बंद — महाडीबीटी पर अभी नए आवेदन स्वीकार नहीं हो रहे; जल्द पुनः खुलेगा।",
+      "mr": "पोर्टल बंद — महाडीबीटीवर सध्या नवीन अर्ज स्वीकारले जात नाहीत; लवकरच पुन्हा सुरू होईल."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "SMAM",
@@ -229,14 +259,14 @@
     "type": "State (Maharashtra)",
     "category": "Mechanization",
     "benefit_text": {
-      "en": "Subsidy on tractors up to 35HP (capped at ₹1,00,000) and on power tillers, rotavators, and seed drills.",
-      "hi": "35 एचपी तक के ट्रैक्टरों (अधिकतम ₹1,00,000 तक) तथा पावर टिलर, रोटावेटर एवं सीड ड्रिल पर अनुदान।",
-      "mr": "35 एचपी पर्यंतच्या ट्रॅक्टरवर (जास्तीत जास्त ₹1,00,000 पर्यंत) तसेच पॉवर टिलर, रोटाव्हेटर आणि सीड ड्रिलवर अनुदान."
+      "en": "Subsidy on tractors up to 35HP (capped at Rs.1,00,000) and on power tillers, rotavators, and seed drills.",
+      "hi": "35 एचपी तक के ट्रैक्टरों (अधिकतम Rs.1,00,000 तक) तथा पावर टिलर, रोटावेटर एवं सीड ड्रिल पर अनुदान।",
+      "mr": "35 एचपी पर्यंतच्या ट्रॅक्टरवर (जास्तीत जास्त Rs.1,00,000 पर्यंत) तसेच पॉवर टिलर, रोटाव्हेटर आणि सीड ड्रिलवर अनुदान."
     },
     "eligibility_summary": {
-      "en": "Landholding-based eligibility; subsidy percentage varies by farmer category (verify exact % against current portal notification).",
-      "hi": "भूमि धारण के आधार पर पात्रता; अनुदान का प्रतिशत किसान की श्रेणी के अनुसार भिन्न होता है (सटीक प्रतिशत के लिए वर्तमान पोर्टल अधिसूचना देखें)।",
-      "mr": "जमीन धारणेनुसार पात्रता; अनुदानाची टक्केवारी शेतकऱ्याच्या प्रवर्गानुसार बदलते (नेमकी टक्केवारी सध्याच्या पोर्टल अधिसूचनेत तपासा)."
+      "en": "Landholding-based eligibility; subsidy percentage varies by farmer category.",
+      "hi": "भूमि धारण के आधार पर पात्रता; अनुदान का प्रतिशत किसान की श्रेणी के अनुसार भिन्न होता है।",
+      "mr": "जमीन धारणेनुसार पात्रता; अनुदानाची टक्केवारी शेतकऱ्याच्या प्रवर्गानुसार बदलते."
     },
     "documents_required": {
       "en": [
@@ -261,7 +291,13 @@
       "hi": "उपकरण केवल पंजीकृत डीलर के माध्यम से ही खरीदा जाना चाहिए।",
       "mr": "उपकरण फक्त अधिकृत विक्रेत्याकडूनच खरेदी करणे आवश्यक आहे."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "portal_closed",
+    "application_status_note": {
+      "en": "Portal Closed — MahaDBT is not currently accepting fresh applications; will reopen soon. Scheme remains active in the 2026-27 Maharashtra plan.",
+      "hi": "पोर्टल बंद — महाडीबीटी पर अभी नए आवेदन स्वीकार नहीं हो रहे; जल्द पुनः खुलेगा।",
+      "mr": "पोर्टल बंद — महाडीबीटीवर सध्या नवीन अर्ज स्वीकारले जात नाहीत; लवकरच पुन्हा सुरू होईल."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "SOLAR_PUMP",
@@ -274,8 +310,8 @@
     "category": "Energy",
     "benefit_text": {
       "en": "Farmer pays only 10% of the solar pump cost (5% for SC/ST farmers); the rest is subsidized.",
-      "hi": "किसान को सौर पंप की लागत का केवल 10% (अनुसूचित जाति/अनुसूचित जनजाति किसानों के लिए 5%) देना होता है; शेष राशि पर अनुदान दिया जाता है।",
-      "mr": "शेतकऱ्याला सौर पंपाच्या किमतीच्या फक्त 10% रक्कम भरावी लागते (अनुसूचित जाती/अनुसूचित जमाती शेतकऱ्यांसाठी 5%); उर्वरित रक्कम अनुदानाद्वारे दिली जाते."
+      "hi": "किसान को सौर पंप की लागत का केवल 10% (SC/ST किसानों के लिए 5%) देना होता है; शेष राशि पर अनुदान दिया जाता है।",
+      "mr": "शेतकऱ्याला सौर पंपाच्या किमतीच्या फक्त 10% रक्कम भरावी लागते (SC/ST शेतकऱ्यांसाठी 5%); उर्वरित रक्कम अनुदानाद्वारे दिली जाते."
     },
     "eligibility_summary": {
       "en": "Landholding farmers; existing electricity connection status is considered during application.",
@@ -301,11 +337,17 @@
     },
     "official_link": "mahadbt.maharashtra.gov.in",
     "status_notes": {
-      "en": "",
-      "hi": "",
-      "mr": ""
+      "en": "Check MSEDCL Magel Tyala portal for updates on application availability.",
+      "hi": "आवेदन उपलब्धता के लिए MSEDCL मागेल त्याला पोर्टल देखें।",
+      "mr": "अर्जाच्या उपलब्धतेसाठी MSEDCL मागेल त्याला पोर्टल तपासा."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "closed",
+    "application_status_note": {
+      "en": "Closed — MSEDCL has explicitly closed new applications for 3/5/7.5 HP solar agricultural pumps. Monitor offgridagsolarpump.mahadiscom.in for reopening.",
+      "hi": "बंद — MSEDCL ने 3/5/7.5 HP सौर कृषि पंपों के नए आवेदन बंद किए हैं। offgridagsolarpump.mahadiscom.in पर नजर रखें।",
+      "mr": "बंद — MSEDCLने 3/5/7.5 HP सौर कृषी पंपांसाठी नवीन अर्ज बंद केले आहेत. offgridagsolarpump.mahadiscom.in वर लक्ष ठेवा."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "FARM_POND",
@@ -345,11 +387,17 @@
     },
     "official_link": "mahadbt.maharashtra.gov.in",
     "status_notes": {
-      "en": "",
-      "hi": "",
-      "mr": ""
+      "en": "Part of Maharashtra agriculture schemes under MahaDBT farmer portal.",
+      "hi": "महाडीबीटी किसान पोर्टल के अंतर्गत महाराष्ट्र की कृषि योजनाओं का हिस्सा।",
+      "mr": "महाडीबीटी शेतकरी पोर्टलअंतर्गत महाराष्ट्राच्या कृषी योजनांचा भाग."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "portal_closed",
+    "application_status_note": {
+      "en": "Portal Closed — MahaDBT is not currently accepting fresh farm pond applications; will reopen soon.",
+      "hi": "पोर्टल बंद — महाडीबीटी पर अभी नए शेत तळे आवेदन स्वीकार नहीं हो रहे; जल्द पुनः खुलेगा।",
+      "mr": "पोर्टल बंद — महाडीबीटीवर सध्या नवीन शेततळे अर्ज स्वीकारले जात नाहीत; लवकरच पुन्हा सुरू होईल."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "WELL_SUBSIDY",
@@ -361,14 +409,14 @@
     "type": "State (Maharashtra)",
     "category": "Irrigation",
     "benefit_text": {
-      "en": "Up to ₹4,00,000 for a new well and up to ₹1,00,000 for repair of an existing well.",
-      "hi": "नए कुएं के लिए ₹4,00,000 तक तथा मौजूदा कुएं की मरम्मत के लिए ₹1,00,000 तक अनुदान।",
-      "mr": "नवीन विहिरीसाठी ₹4,00,000 पर्यंत तसेच सध्याच्या विहिरीच्या दुरुस्तीसाठी ₹1,00,000 पर्यंत अनुदान."
+      "en": "Up to Rs.4,00,000 for a new well and up to Rs.1,00,000 for repair of an existing well.",
+      "hi": "नए कुएं के लिए Rs.4,00,000 तक तथा मौजूदा कुएं की मरम्मत के लिए Rs.1,00,000 तक अनुदान।",
+      "mr": "नवीन विहिरीसाठी Rs.4,00,000 पर्यंत तसेच सध्याच्या विहिरीच्या दुरुस्तीसाठी Rs.1,00,000 पर्यंत अनुदान."
     },
     "eligibility_summary": {
-      "en": "Landholding between 0.4 and 6 hectares; land must be in the farmer's own name and free of encumbrance (“Boja”).",
-      "hi": "0.4 से 6 हेक्टेयर के बीच भूमि धारण; भूमि किसान के स्वयं के नाम पर तथा बोझा-मुक्त (भारमुक्त) होनी चाहिए।",
-      "mr": "0.4 ते 6 हेक्टर दरम्यान जमीन धारणा; जमीन शेतकऱ्याच्या स्वतःच्या नावावर व बोजामुक्त (भारमुक्त) असणे आवश्यक आहे."
+      "en": "Landholding between 0.4 and 6 hectares; land must be in the farmer own name and free of encumbrance.",
+      "hi": "0.4 से 6 हेक्टेयर के बीच भूमि धारण; भूमि किसान के स्वयं के नाम पर तथा बोझा-मुक्त होनी चाहिए।",
+      "mr": "0.4 ते 6 हेक्टर दरम्यान जमीन धारणा; जमीन शेतकऱ्याच्या स्वतःच्या नावावर व बोजामुक्त असणे आवश्यक आहे."
     },
     "documents_required": {
       "en": [
@@ -393,10 +441,16 @@
     "official_link": "mahadbt.maharashtra.gov.in",
     "status_notes": {
       "en": "Land must be free of any registered encumbrance.",
-      "hi": "भूमि किसी भी पंजीकृत बोझ (भार) से मुक्त होनी चाहिए।",
+      "hi": "भूमि किसी भी पंजीकृत बोझ से मुक्त होनी चाहिए।",
       "mr": "जमीन कोणत्याही नोंदणीकृत बोजापासून मुक्त असणे आवश्यक आहे."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "portal_closed",
+    "application_status_note": {
+      "en": "Portal Closed — MahaDBT is not currently accepting fresh well subsidy applications; will reopen soon.",
+      "hi": "पोर्टल बंद — महाडीबीटी पर अभी नए कुआं अनुदान आवेदन स्वीकार नहीं हो रहे; जल्द पुनः खुलेगा।",
+      "mr": "पोर्टल बंद — महाडीबीटीवर सध्या नवीन विहीर अनुदान अर्ज स्वीकारले जात नाहीत; लवकरच पुन्हा सुरू होईल."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "KARJMAFI",
@@ -413,7 +467,7 @@
       "mr": "थकीत पीक कर्जाची माफी, रक्कम लागू शासन अधिसूचनेनुसार."
     },
     "eligibility_summary": {
-      "en": "Farmers with an outstanding crop loan meeting the notification's criteria.",
+      "en": "Farmers with an outstanding crop loan meeting the notification criteria.",
       "hi": "अधिसूचना के मानदंडों को पूरा करने वाले बकाया फसल ऋण वाले किसान।",
       "mr": "अधिसूचनेच्या निकषांची पूर्तता करणारे थकीत पीक कर्ज असलेले शेतकरी."
     },
@@ -440,7 +494,13 @@
       "hi": "समय-समय पर सरकारी अधिसूचना के अधीन; प्रत्येक चक्र में शर्तें बदल सकती हैं।",
       "mr": "वेळोवेळी शासन अधिसूचनेच्या अधीन; प्रत्येक टप्प्यात अटी बदलू शकतात."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "cycle_based",
+    "application_status_note": {
+      "en": "Cycle-Based — Not continuously open. Eligibility and application depend on a specific Maharashtra government notification for an active waiver cycle.",
+      "hi": "चक्र-आधारित — लगातार खुली नहीं है। पात्रता और आवेदन सक्रिय माफी चक्र के लिए विशिष्ट महाराष्ट्र सरकार अधिसूचना पर निर्भर करते हैं।",
+      "mr": "चक्र-आधारित — सतत उघडी नाही. पात्रता आणि अर्ज सक्रिय माफी चक्रासाठी विशिष्ट महाराष्ट्र शासन अधिसूचनेवर अवलंबून आहे."
+    },
+    "last_verified": "2026-09-07"
   },
   {
     "scheme_id": "PKVY",
@@ -458,8 +518,8 @@
     },
     "eligibility_summary": {
       "en": "Farmer must join a cluster of at least 50 farmers and commit to organic practices for 3 years.",
-      "hi": "किसान को कम से कम 50 किसानों के समूह (क्लस्टर) में शामिल होना होगा तथा 3 वर्षों तक जैविक खेती अपनाने की प्रतिबद्धता देनी होगी।",
-      "mr": "शेतकऱ्याला किमान 50 शेतकऱ्यांच्या गटात (क्लस्टर) सामील व्हावे लागते व 3 वर्षांसाठी सेंद्रिय शेतीची बांधिलकी द्यावी लागते."
+      "hi": "किसान को कम से कम 50 किसानों के समूह में शामिल होना होगा तथा 3 वर्षों तक जैविक खेती की प्रतिबद्धता देनी होगी।",
+      "mr": "शेतकऱ्याला किमान 50 शेतकऱ्यांच्या गटात सामील व्हावे लागते व 3 वर्षांसाठी सेंद्रिय शेतीची बांधिलकी द्यावी लागते."
     },
     "documents_required": {
       "en": [
@@ -484,6 +544,12 @@
       "hi": "3 वर्षों की समूह प्रतिबद्धता आवश्यक है।",
       "mr": "3 वर्षांची गट बांधिलकी आवश्यक आहे."
     },
-    "last_verified": "2026-08-22"
+    "application_status": "unconfirmed",
+    "application_status_note": {
+      "en": "Active Scheme — Window Not Confirmed. PKVY is an ongoing government scheme but no current Maharashtra notification confirms a new individual application window is open. Check mahadbt.maharashtra.gov.in or pgsindia-ncof.gov.in.",
+      "hi": "सक्रिय योजना — विंडो अपुष्ट। पीकेवीवाई चालू सरकारी योजना है लेकिन कोई वर्तमान महाराष्ट्र अधिसूचना नई व्यक्तिगत आवेदन विंडो की पुष्टि नहीं करती।",
+      "mr": "सक्रिय योजना — विंडो अनिश्चित. पीकेव्हीवाय ही चालू सरकारी योजना आहे परंतु सध्याची कोणतीही महाराष्ट्र अधिसूचना नवीन वैयक्तिक अर्ज विंडोची पुष्टी करत नाही."
+    },
+    "last_verified": "2026-09-07"
   }
 ]
