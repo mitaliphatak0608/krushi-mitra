@@ -632,6 +632,79 @@ INELIGIBLE_REASONS_KEYWORDS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Pre-FAISS keyword alias lookup (Hindi / Marathi / transliterations -> scheme_id)
+# ---------------------------------------------------------------------------
+_SCHEME_ALIASES: dict[str, str] = {
+    "pm kisan": "PMKISAN", "pm-kisan": "PMKISAN", "pmkisan": "PMKISAN",
+    "pm kisaan": "PMKISAN", "pradhan mantri kisan": "PMKISAN",
+    "kisan samman nidhi": "PMKISAN", "kisan samman": "PMKISAN",
+    "pmfby": "PMFBY", "fasal bima": "PMFBY", "crop insurance": "PMFBY",
+    "pm fasal bima": "PMFBY", "pik vima": "PMFBY",
+    "kcc": "KCC", "kisan credit card": "KCC", "kisan credit": "KCC",
+    "namo shetkari": "NAMO_SHETKARI", "shetkari nidhi": "NAMO_SHETKARI",
+    "sanman nidhi": "NAMO_SHETKARI",
+    "micro irrigation": "MICRO_IRRIGATION", "drip irrigation": "MICRO_IRRIGATION",
+    "drip subsidy": "MICRO_IRRIGATION", "sprinkler": "MICRO_IRRIGATION",
+    "thibak": "MICRO_IRRIGATION",
+    "smam": "SMAM", "farm mechanization": "SMAM", "yantrikikaran": "SMAM",
+    "solar pump": "SOLAR_PUMP", "saur pump": "SOLAR_PUMP",
+    "solar krishi pump": "SOLAR_PUMP", "magel tyala saur": "SOLAR_PUMP",
+    "farm pond": "FARM_POND", "shet tale": "FARM_POND", "shettale": "FARM_POND",
+    "well subsidy": "WELL_SUBSIDY", "kuan anudan": "WELL_SUBSIDY",
+    "vihar anudan": "WELL_SUBSIDY", "boring subsidy": "WELL_SUBSIDY",
+    "karjmafi": "KARJMAFI", "loan waiver": "KARJMAFI", "karz mafi": "KARJMAFI",
+    "ahilyadevi": "KARJMAFI", "rin mafi": "KARJMAFI",
+    "pkvy": "PKVY", "organic farming": "PKVY", "paramparagat krishi": "PKVY",
+    "jaivik kheti": "PKVY",
+}
+# Devanagari aliases (must be lowercase-compared separately)
+_SCHEME_ALIASES_DEVA: dict[str, str] = {
+    "पीएम किसान": "PMKISAN",
+    "पीएम-किसान": "PMKISAN",
+    "किसान सम्मान निधि": "PMKISAN",
+    "किसान सन्मान": "PMKISAN",
+    "फसल बीमा": "PMFBY",
+    "पीमएफबीवाई": "PMFBY",
+    "पीक विमा": "PMFBY",
+    "किसान क्रेडिट": "KCC",
+    "नमो शेतकरी": "NAMO_SHETKARI",
+    "सन्मान निधि": "NAMO_SHETKARI",
+    "सन्मान निधी": "NAMO_SHETKARI",
+    "ड्रिप": "MICRO_IRRIGATION",
+    "ठिबक": "MICRO_IRRIGATION",
+    "सूक्ष्म सिंचाई": "MICRO_IRRIGATION",
+    "सूक्ष्म सिंचन": "MICRO_IRRIGATION",
+    "यंत्रीकरण": "SMAM",
+    "यांत्रिकीकरण": "SMAM",
+    "सोलर पंप": "SOLAR_PUMP",
+    "सौर पंप": "SOLAR_PUMP",
+    "शेत तळे": "FARM_POND",
+    "शेततळे": "FARM_POND",
+    "विहीर अनुदान": "WELL_SUBSIDY",
+    "कर्जमाफी": "KARJMAFI",
+    "अहिल्यादेवी": "KARJMAFI",
+    "परंपरागत कृषि": "PKVY",
+    "परंपरागत कृषी": "PKVY",
+}
+
+
+def _alias_lookup(query: str) -> str | None:
+    """Return scheme_id if a known alias matches in the query, else None.
+    Checks longest aliases first to avoid partial mismatches."""
+    q = query.strip()
+    q_lower = q.lower()
+    # Check Devanagari aliases (exact substring, case-insensitive via lower not needed)
+    for alias, sid in sorted(_SCHEME_ALIASES_DEVA.items(), key=lambda x: len(x[0]), reverse=True):
+        if alias in q:
+            return sid
+    # Check Latin aliases (lowercase)
+    for alias, sid in sorted(_SCHEME_ALIASES.items(), key=lambda x: len(x[0]), reverse=True):
+        if alias in q_lower:
+            return sid
+    return None
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(body: ChatRequest) -> ChatResponse:
     """
@@ -738,11 +811,28 @@ def chat(body: ChatRequest) -> ChatResponse:
         # Marathi combos
         or (("सर्व" in raw_query or "सगळ्या" in raw_query) and "योजना" in raw_query)
         or ("माझ्यासाठी" in raw_query and "योजना" in raw_query)
-        or ("मला" in raw_query and ("योजना" in raw_query or "पात्र" in raw_query))
-        # Hindi combos
+        # 'मला' (I/me in Marathi) only triggers all-schemes when NOT about a specific scheme
+        or ("मला" in raw_query and ("योजना" in raw_query or "पात्र" in raw_query)
+            and not any(w in raw_query for w in ["बद्दल", "सांगा", "माहिती", "काय", "कसे"])
+            and not any(h in raw_query.lower() for h in [
+                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
+                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
+            ]))
+        # Hindi combos — explicit 'all/list' words always trigger
         or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and "योजना" in raw_query)
-        or ("मुझे" in raw_query and "योजना" in raw_query)
-        or ("मेरे लिए" in raw_query and "योजना" in raw_query)
+        # 'मुझे/मेरे लिए' only trigger when NOT asking about a specific scheme
+        or ("मुझे" in raw_query and "योजना" in raw_query
+            and not any(w in raw_query for w in ["बारे", "जानकारी", "बताइए", "बताओ", "क्या", "कैसे"])
+            and not any(h in raw_query.lower() for h in [
+                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
+                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
+            ]))
+        or ("मेरे लिए" in raw_query and "योजना" in raw_query
+            and not any(w in raw_query for w in ["बारे", "जानकारी", "बताइए", "बताओ", "क्या", "कैसे"])
+            and not any(h in raw_query.lower() for h in [
+                "pm-kisan", "pm kisan", "किसान", "pmfby", "kcc", "smam",
+                "drip", "solar", "sanman", "nidhi", "micro", "insurance", "बीमा",
+            ]))
     )
 
     if is_all_schemes:
@@ -784,7 +874,34 @@ def chat(body: ChatRequest) -> ChatResponse:
             schemes=scheme_items,
         )
 
+
+
     # 4. Specific Scheme RAG Semantic Search
+    # 4a. Try keyword alias lookup first (handles Hindi/Marathi transliterations)
+    alias_scheme_id = _alias_lookup(body.query)
+    if alias_scheme_id and alias_scheme_id in scheme_map:
+        scheme = scheme_map[alias_scheme_id]
+        result = eligibility.evaluate(alias_scheme_id, body.profile)
+        conversational_answer = qa_engine.synthesize_answer(
+            query=body.query, scheme=scheme, profile=body.profile,
+            eval_result=result, lang=lang,
+            application_status=scheme.get("application_status", "open"),
+        )
+        return ChatResponse(
+            found=True, type="scheme",
+            message=conversational_answer,
+            scheme_id=alias_scheme_id,
+            scheme_name=scheme.get("scheme_name"),
+            eligible=result["eligible"],
+            note=result["note"],
+            benefit=scheme.get("benefit_text"),
+            documents=scheme.get("documents_required"),
+            link=scheme.get("official_link"),
+            score=1.0,
+            application_status=scheme.get("application_status", "open"),
+        )
+
+    # 4b. Fall back to FAISS semantic search
     try:
         index, metadata = load_vector_store()
     except RuntimeError as exc:
@@ -834,9 +951,8 @@ def chat(body: ChatRequest) -> ChatResponse:
         application_status=scheme.get("application_status", "open"),
     )
 
-
 # ---------------------------------------------------------------------------
-# Voice / AI chat endpoints (added by voice-assistant-integration branch)
+# Voice / AI chat endpoints
 # ---------------------------------------------------------------------------
 
 class AIChatRequest(BaseModel):
@@ -878,10 +994,8 @@ def _require_ai():
 @app.post("/ai/chat", response_model=AIChatResponse)
 def ai_chat(body: AIChatRequest):
     _require_ai()
-
     try:
         analysis = ai_engine.analyze_query(body.message, body.language)
-
         faiss_results = None
         if analysis.get("intent") in ("scheme_query", "eligibility_check"):
             try:
@@ -889,7 +1003,6 @@ def ai_chat(body: AIChatRequest):
                 index, meta = load_vector_store()
                 q_vec = model_st.encode([body.message], normalize_embeddings=True)
                 scores, indices = index.search(q_vec, min(5, len(meta)))
-
                 seen: set[str] = set()
                 faiss_results = []
                 for score, idx in zip(scores[0], indices[0]):
@@ -912,40 +1025,25 @@ def ai_chat(body: AIChatRequest):
             "fertilizer", "irrigation", "crop_protection", "sowing",
             "harvesting", "soil", "seed", "livestock"
         }
-
         if analysis.get("intent") in agri_intents:
             try:
                 agri_kb_results = knowledge_base.search_agri_knowledge(
-                    query=body.message,
-                    language=body.language,
-                    crop=analysis.get("crop"),
-                    use_test=False,
+                    query=body.message, language=body.language,
+                    crop=analysis.get("crop"), use_test=False,
                 )
             except Exception:
                 agri_kb_results = None
 
-        context = ai_engine.gather_context(
-            analysis, body.profile, faiss_results, agri_kb_results
-        )
-
-        result = ai_engine.generate_response(
-            body.message, analysis, context, body.profile, agri_kb_results
-        )
-
-        speech_text = voice_utils.simplify_ai_response(
-            result["answer"], result["language"]
-        )
+        context = ai_engine.gather_context(analysis, body.profile, faiss_results, agri_kb_results)
+        result = ai_engine.generate_response(body.message, analysis, context, body.profile, agri_kb_results)
+        speech_text = voice_utils.simplify_ai_response(result["answer"], result["language"])
 
         return AIChatResponse(
-            answer=result["answer"],
-            language=result["language"],
-            intent=result["intent"],
-            sources=result["sources"],
-            grounded=result["grounded"],
-            analysis=result.get("analysis"),
+            answer=result["answer"], language=result["language"],
+            intent=result["intent"], sources=result["sources"],
+            grounded=result["grounded"], analysis=result.get("analysis"),
             speech_text=speech_text,
         )
-
     except stt_tts.ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except stt_tts.ExternalAPIError as exc:
@@ -958,32 +1056,17 @@ def ai_chat(body: AIChatRequest):
 @app.post("/ai/transcribe", response_model=AITranscribeResponse)
 async def ai_transcribe(file: UploadFile = File(...)):
     _require_ai()
-
     ctype = (file.content_type or "").lower()
     if ctype and not ctype.startswith("audio/"):
-        raise HTTPException(
-            status_code=422,
-            detail=f"Expected audio file, received: {ctype}",
-        )
-
+        raise HTTPException(status_code=422, detail=f"Expected audio file, received: {ctype}")
     audio_bytes = await file.read()
-
     if not audio_bytes:
         raise HTTPException(status_code=422, detail="Empty audio file.")
-
     if len(audio_bytes) > stt_tts.MAX_AUDIO_SIZE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Audio file too large. Max {stt_tts.MAX_AUDIO_SIZE_BYTES // (1024*1024)} MB.",
-        )
-
+        raise HTTPException(status_code=413, detail=f"Audio too large. Max {stt_tts.MAX_AUDIO_SIZE_BYTES // (1024*1024)} MB.")
     try:
-        text, lang = stt_tts.transcribe_audio(
-            audio_bytes,
-            filename=file.filename or "audio.webm",
-        )
+        text, lang = stt_tts.transcribe_audio(audio_bytes, filename=file.filename or "audio.webm")
         return AITranscribeResponse(text=text, language=lang)
-
     except stt_tts.ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except stt_tts.ExternalAPIError as exc:
@@ -992,22 +1075,17 @@ async def ai_transcribe(file: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception:
         logger.exception("Transcription failed")
-        raise HTTPException(status_code=500, detail="Transcription failed. Please try again.")
+        raise HTTPException(status_code=500, detail="Transcription failed.")
 
 
 @app.post("/ai/speak")
 def ai_speak(body: AISpeakRequest):
+    """TTS endpoint. Marathi uses gTTS (free). EN/HI uses OpenAI TTS."""
     if not body.text.strip():
         raise HTTPException(status_code=422, detail="Text cannot be empty.")
-
     try:
-        audio_bytes = stt_tts.synthesize_speech(
-            body.text,
-            body.language,
-            body.voice,
-        )
+        audio_bytes = stt_tts.synthesize_speech(body.text, body.language, body.voice)
         return Response(content=audio_bytes, media_type="audio/mpeg")
-
     except stt_tts.ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except stt_tts.ExternalAPIError as exc:
@@ -1016,4 +1094,4 @@ def ai_speak(body: AISpeakRequest):
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception:
         logger.exception("TTS synthesis failed")
-        raise HTTPException(status_code=500, detail="Speech synthesis failed. Please try again.")
+        raise HTTPException(status_code=500, detail="Speech synthesis failed.")
