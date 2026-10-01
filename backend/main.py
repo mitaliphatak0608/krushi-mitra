@@ -547,6 +547,7 @@ class ChatResponse(BaseModel):
     found: bool
     type: str = "scheme"  # "scheme" | "all_schemes" | "greeting"
     message: str | None = None
+    speech_text: str | None = None               # spoken-friendly string for Voice Assistant TTS
     schemes: list[SchemeSummaryItem] | None = None
     scheme_id: str | None = None
     scheme_name: dict[str, str] | None = None   # { en, hi, mr }
@@ -642,56 +643,143 @@ INELIGIBLE_REASONS_KEYWORDS = [
 # Pre-FAISS keyword alias lookup (Hindi / Marathi / transliterations -> scheme_id)
 # ---------------------------------------------------------------------------
 _SCHEME_ALIASES: dict[str, str] = {
+    # 1. PM-KISAN
     "pm kisan": "PMKISAN", "pm-kisan": "PMKISAN", "pmkisan": "PMKISAN",
     "pm kisaan": "PMKISAN", "pradhan mantri kisan": "PMKISAN",
     "kisan samman nidhi": "PMKISAN", "kisan samman": "PMKISAN",
+    "kisan installment": "PMKISAN",
+
+    # 2. PMFBY (Crop Insurance)
     "pmfby": "PMFBY", "fasal bima": "PMFBY", "crop insurance": "PMFBY",
-    "pm fasal bima": "PMFBY", "pik vima": "PMFBY",
+    "pm fasal bima": "PMFBY", "pik vima": "PMFBY", "pikvima": "PMFBY",
+    "vima yojana": "PMFBY", "pradhan mantri fasal bima": "PMFBY",
+    "farm insurance": "PMFBY", "weather insurance": "PMFBY",
+
+    # 3. KCC (Kisan Credit Card)
     "kcc": "KCC", "kisan credit card": "KCC", "kisan credit": "KCC",
+    "kcc loan": "KCC", "crop loan card": "KCC", "agri credit card": "KCC",
+
+    # 4. NAMO SHETKARI
     "namo shetkari": "NAMO_SHETKARI", "shetkari nidhi": "NAMO_SHETKARI",
-    "sanman nidhi": "NAMO_SHETKARI",
+    "sanman nidhi": "NAMO_SHETKARI", "namo kisan": "NAMO_SHETKARI",
+    "namo yojana": "NAMO_SHETKARI", "namo maha sanman": "NAMO_SHETKARI",
+
+    # 5. MICRO IRRIGATION (Drip / Sprinkler)
     "micro irrigation": "MICRO_IRRIGATION", "drip irrigation": "MICRO_IRRIGATION",
     "drip subsidy": "MICRO_IRRIGATION", "sprinkler": "MICRO_IRRIGATION",
-    "thibak": "MICRO_IRRIGATION",
-    "smam": "SMAM", "farm mechanization": "SMAM", "yantrikikaran": "SMAM",
+    "thibak": "MICRO_IRRIGATION", "thibak sinchan": "MICRO_IRRIGATION",
+    "drip system": "MICRO_IRRIGATION", "pdmc": "MICRO_IRRIGATION",
+    "tushar sinchan": "MICRO_IRRIGATION", "sprinkler subsidy": "MICRO_IRRIGATION",
+
+    # 6. SMAM (Farm Mechanization / Tractor)
+    "smam": "SMAM", "farm mechanization": "SMAM", "tractor subsidy": "SMAM",
+    "tractor": "SMAM", "yantrikikaran": "SMAM", "rotavator": "SMAM",
+    "agri machinery": "SMAM", "farm equipment": "SMAM", "krishi yantra": "SMAM",
+
+    # 7. SOLAR PUMP (Magel Tyala Saur Krishi Pump)
     "solar pump": "SOLAR_PUMP", "saur pump": "SOLAR_PUMP",
     "solar krishi pump": "SOLAR_PUMP", "magel tyala saur": "SOLAR_PUMP",
+    "pm kusum": "SOLAR_PUMP", "kusum": "SOLAR_PUMP",
+    "solar water pump": "SOLAR_PUMP", "saur urja pump": "SOLAR_PUMP",
+    "saur urja": "SOLAR_PUMP",
+
+    # 8. FARM POND (Shet Tale)
     "farm pond": "FARM_POND", "shet tale": "FARM_POND", "shettale": "FARM_POND",
+    "farm pond subsidy": "FARM_POND", "khet talab": "FARM_POND", "khet talai": "FARM_POND",
+    "magel tyala shet tale": "FARM_POND", "magel tyala shettale": "FARM_POND",
+
+    # 9. WELL SUBSIDY
     "well subsidy": "WELL_SUBSIDY", "kuan anudan": "WELL_SUBSIDY",
     "vihar anudan": "WELL_SUBSIDY", "boring subsidy": "WELL_SUBSIDY",
+    "vihir anudan": "WELL_SUBSIDY", "new well": "WELL_SUBSIDY",
+    "kua": "WELL_SUBSIDY", "kuan": "WELL_SUBSIDY", "vihir": "WELL_SUBSIDY",
+    "vhir": "WELL_SUBSIDY", "dug well": "WELL_SUBSIDY", "well repair": "WELL_SUBSIDY",
+
+    # 10. KARJMAFI (Loan Waiver)
     "karjmafi": "KARJMAFI", "loan waiver": "KARJMAFI", "karz mafi": "KARJMAFI",
-    "ahilyadevi": "KARJMAFI", "rin mafi": "KARJMAFI",
+    "karj mafi": "KARJMAFI", "ahilyadevi": "KARJMAFI", "rin mafi": "KARJMAFI",
+    "debt relief": "KARJMAFI", "crop loan waiver": "KARJMAFI",
+    "karj mukti": "KARJMAFI", "karz mukti": "KARJMAFI",
+
+    # 11. PKVY (Organic Farming)
     "pkvy": "PKVY", "organic farming": "PKVY", "paramparagat krishi": "PKVY",
-    "jaivik kheti": "PKVY",
+    "jaivik kheti": "PKVY", "sendriya sheti": "PKVY", "vermicompost": "PKVY",
+    "bio farming": "PKVY", "organic cluster": "PKVY",
 }
-# Devanagari aliases (must be lowercase-compared separately)
+
 _SCHEME_ALIASES_DEVA: dict[str, str] = {
-    "पीएम किसान": "PMKISAN",
-    "पीएम-किसान": "PMKISAN",
-    "किसान सम्मान निधि": "PMKISAN",
-    "किसान सन्मान": "PMKISAN",
-    "फसल बीमा": "PMFBY",
-    "पीमएफबीवाई": "PMFBY",
-    "पीक विमा": "PMFBY",
-    "किसान क्रेडिट": "KCC",
-    "नमो शेतकरी": "NAMO_SHETKARI",
-    "सन्मान निधि": "NAMO_SHETKARI",
-    "सन्मान निधी": "NAMO_SHETKARI",
-    "ड्रिप": "MICRO_IRRIGATION",
-    "ठिबक": "MICRO_IRRIGATION",
-    "सूक्ष्म सिंचाई": "MICRO_IRRIGATION",
-    "सूक्ष्म सिंचन": "MICRO_IRRIGATION",
-    "यंत्रीकरण": "SMAM",
-    "यांत्रिकीकरण": "SMAM",
-    "सोलर पंप": "SOLAR_PUMP",
-    "सौर पंप": "SOLAR_PUMP",
-    "शेत तळे": "FARM_POND",
-    "शेततळे": "FARM_POND",
-    "विहीर अनुदान": "WELL_SUBSIDY",
-    "कर्जमाफी": "KARJMAFI",
-    "अहिल्यादेवी": "KARJMAFI",
-    "परंपरागत कृषि": "PKVY",
-    "परंपरागत कृषी": "PKVY",
+    # 1. PM-KISAN
+    "पीएम किसान": "PMKISAN", "पीएम-किसान": "PMKISAN", "पीएमकिसान": "PMKISAN",
+    "किसान सम्मान निधि": "PMKISAN", "किसान सन्मान निधी": "PMKISAN",
+    "किसान सम्मान": "PMKISAN", "किसान सन्मान": "PMKISAN",
+    "पंतप्रधान किसान सन्मान": "PMKISAN", "प्रधानमंत्री किसान सम्मान": "PMKISAN",
+
+    # 2. PMFBY (Crop Insurance)
+    "पीएमएफबीवाई": "PMFBY", "पीएमएफबीवाय": "PMFBY", "फसल बीमा": "PMFBY",
+    "पीक विमा": "PMFBY", "पीकविमा": "PMFBY", "पंतप्रधान पीक विमा": "PMFBY",
+    "प्रधानमंत्री फसल बीमा": "PMFBY", "विमा योजना": "PMFBY", "पीक नुकसान": "PMFBY",
+    "फसल नुकसान": "PMFBY",
+
+    # 3. KCC (Kisan Credit Card)
+    "केसीसी": "KCC", "के.सी.सी.": "KCC", "किसान क्रेडिट कार्ड": "KCC",
+    "किसान क्रेडिट": "KCC", "किसान कार्ड": "KCC", "केसीसी कर्ज": "KCC",
+
+    # 4. NAMO SHETKARI
+    "नमो शेतकरी": "NAMO_SHETKARI", "नमो शेतकरी महा सन्मान": "NAMO_SHETKARI",
+    "नमो शेतकरी महा सम्मान": "NAMO_SHETKARI", "नमो शेतकरी योजना": "NAMO_SHETKARI",
+    "सन्मान निधि": "NAMO_SHETKARI", "सन्मान निधी": "NAMO_SHETKARI",
+    "नमो योजना": "NAMO_SHETKARI",
+
+    # 5. MICRO IRRIGATION (Drip / Sprinkler)
+    "ठिबक सिंचन": "MICRO_IRRIGATION", "ठिबक": "MICRO_IRRIGATION",
+    "तुषार सिंचन": "MICRO_IRRIGATION", "तुषार": "MICRO_IRRIGATION",
+    "ड्रिप सिंचाई": "MICRO_IRRIGATION", "ड्रिप": "MICRO_IRRIGATION",
+    "सूक्ष्म सिंचाई": "MICRO_IRRIGATION", "सूक्ष्म सिंचन": "MICRO_IRRIGATION",
+    "स्प्रिंकलर": "MICRO_IRRIGATION", "ड्रिप अनुदान": "MICRO_IRRIGATION",
+    "ठिबक अनुदान": "MICRO_IRRIGATION", "फव्वारा सिंचाई": "MICRO_IRRIGATION",
+
+    # 6. SMAM (Farm Mechanization / Tractor)
+    "एसएमएएम": "SMAM", "कृषि यंत्रीकरण": "SMAM", "कृषी यांत्रिकीकरण": "SMAM",
+    "यंत्रीकरण": "SMAM", "यांत्रिकीकरण": "SMAM", "ट्रॅक्टर": "SMAM",
+    "ट्रैक्टर": "SMAM", "कृषि यंत्र": "SMAM", "कृषी अवजारे": "SMAM",
+    "अवजार अनुदान": "SMAM", "ट्रॅक्टर अनुदान": "SMAM", "ट्रैक्टर अनुदान": "SMAM",
+    "ट्रॅक्टर योजना": "SMAM", "ट्रैक्टर योजना": "SMAM", "रोटाव्हेटर": "SMAM",
+    "रोटावेटर": "SMAM",
+
+    # 7. SOLAR PUMP
+    "सौर कृषी पंप": "SOLAR_PUMP", "सौर कृषि पंप": "SOLAR_PUMP",
+    "सोलर पंप": "SOLAR_PUMP", "सौर पंप": "SOLAR_PUMP",
+    "सोलर कृषी पंप": "SOLAR_PUMP", "सोलर कृषि पंप": "SOLAR_PUMP",
+    "मागेल त्याला सौर": "SOLAR_PUMP", "कुसुम योजना": "SOLAR_PUMP",
+    "पीएम कुसुम": "SOLAR_PUMP", "सौर ऊर्जा पंप": "SOLAR_PUMP",
+    "सौर ऊर्जा": "SOLAR_PUMP", "सोलर योजना": "SOLAR_PUMP",
+
+    # 8. FARM POND (Shet Tale)
+    "शेततळे": "FARM_POND", "शेत तळे": "FARM_POND",
+    "खेत तालाब": "FARM_POND", "खेत तलाई": "FARM_POND",
+    "फार्म पॉन्ड": "FARM_POND", "शेततळे अनुदान": "FARM_POND",
+    "मागेल त्याला शेततळे": "FARM_POND", "मागेल त्याला शेत तळे": "FARM_POND",
+
+    # 9. WELL SUBSIDY
+    "विहीर अनुदान": "WELL_SUBSIDY", "विहीर": "WELL_SUBSIDY",
+    "विहिरीसाठी": "WELL_SUBSIDY", "नवीन विहीर": "WELL_SUBSIDY",
+    "विहीर दुरुस्ती": "WELL_SUBSIDY", "इनवेल बोअरिंग": "WELL_SUBSIDY",
+    "कुआं अनुदान": "WELL_SUBSIDY", "कुआं": "WELL_SUBSIDY",
+    "कुएं": "WELL_SUBSIDY", "कूप निर्माण": "WELL_SUBSIDY",
+    "बोरिंग अनुदान": "WELL_SUBSIDY", "विहीर योजना": "WELL_SUBSIDY",
+
+    # 10. KARJMAFI
+    "कर्जमाफी": "KARJMAFI", "कर्ज माफी": "KARJMAFI", "कर्ज माफ": "KARJMAFI",
+    "ऋण माफी": "KARJMAFI", "अहिल्यादेवी": "KARJMAFI", "पीक कर्ज माफी": "KARJMAFI",
+    "शेतकरी कर्जमाफी": "KARJMAFI", "कर्जमुक्ती": "KARJMAFI", "कर्ज मुक्ती": "KARJMAFI",
+
+    # 11. PKVY (Organic Farming)
+    "पीकेवीवाई": "PKVY", "पीकेव्हीवाय": "PKVY",
+    "परंपरागत कृषि": "PKVY", "परंपरागत कृषी": "PKVY",
+    "जैविक खेती": "PKVY", "सेंद्रिय शेती": "PKVY",
+    "सेंद्रिय प्रमाणन": "PKVY", "जैविक प्रमाणन": "PKVY",
+    "गांडूळ खत": "PKVY", "जीवामृत": "PKVY", "नैसर्गिक शेती": "PKVY",
+    "सेंद्रिय": "PKVY", "जैविक": "PKVY",
 }
 
 
@@ -731,10 +819,12 @@ def chat(body: ChatRequest) -> ChatResponse:
             "hi": "नमस्ते! मैं कृषी मित्र हूँ, आपका एआई योजना सहायक। आप मुझसे किसी भी विशिष्ट किसान कल्याण योजना (जैसे सौर पंप, ड्रिप सिंचाई, फसल बीमा, पीएम-किसान) के बारे में पूछ सकते हैं, या पूरी सूची के लिए 'सभी योजनाएं बताओ' कह सकते हैं!",
             "mr": "नमस्कार! मी कृषी मित्र आहे, तुमचा एआई योजना सहाय्यक. तुम्ही मला कोणत्याही विशिष्ट शेतकरी योजनेबद्दल (जसे की सौर कृषी पंप, ठिबक सिंचन, पीक विमा, पीएम-किसान) विचारू शकता किंवा संपूर्ण यादीसाठी 'सर्व योजना सांगा' विचारू शकता!"
         }
+        greeting_msg = greeting_msgs.get(lang, greeting_msgs["en"])
         return ChatResponse(
             found=True,
             type="greeting",
-            message=greeting_msgs.get(lang, greeting_msgs["en"]),
+            message=greeting_msg,
+            speech_text=voice_utils.simplify_for_speech(greeting_msg),
         )
 
     # 2. Ineligible-reasons intent — "why am I not eligible / which schemes am I not eligible for"
@@ -871,11 +961,20 @@ def chat(body: ChatRequest) -> ChatResponse:
             "mr": f"येथे महाराष्ट्र व केंद्र शासनाच्या सर्व {len(scheme_items)} योजनांची संपूर्ण माहिती आहे. तुमच्या सध्याच्या प्रोफाइलनुसार, तुम्ही {eligible_count} योजनांसाठी पात्र आहात:"
         }
 
+        speech_t = voice_utils.build_speech_text(
+            "all_schemes",
+            {
+                "message": intro_msgs.get(lang, intro_msgs["en"]),
+                "schemes": [s.model_dump() for s in scheme_items],
+            },
+            lang=lang,
+        )
         return ChatResponse(
             found=True,
             type="all_schemes",
             message=intro_msgs.get(lang, intro_msgs["en"]),
             schemes=scheme_items,
+            speech_text=speech_t,
         )
 
 
@@ -891,9 +990,15 @@ def chat(body: ChatRequest) -> ChatResponse:
             eval_result=result, lang=lang,
             application_status=scheme.get("application_status", "open"),
         )
+        speech_t = voice_utils.build_speech_text(
+            "scheme",
+            {"message": conversational_answer, "eligible": result["eligible"], "note": result["note"]},
+            lang=lang,
+        )
         return ChatResponse(
             found=True, type="scheme",
             message=conversational_answer,
+            speech_text=speech_t,
             scheme_id=alias_scheme_id,
             scheme_name=scheme.get("scheme_name"),
             eligible=result["eligible"],
@@ -940,10 +1045,16 @@ def chat(body: ChatRequest) -> ChatResponse:
         application_status=scheme.get("application_status", "open"),
     )
 
+    speech_t = voice_utils.build_speech_text(
+        "scheme",
+        {"message": conversational_answer, "eligible": result["eligible"], "note": result["note"]},
+        lang=lang,
+    )
     return ChatResponse(
         found=True,
         type="scheme",
         message=conversational_answer,
+        speech_text=speech_t,
         scheme_id=scheme_id,
         scheme_name=scheme.get("scheme_name"),
         eligible=result["eligible"],
