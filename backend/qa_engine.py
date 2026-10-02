@@ -3,51 +3,110 @@ backend/qa_engine.py
 ====================
 Natural Language Q&A Synthesis Engine for Krushi Mitra.
 
-Generates clear, simple, short, and friendly explanations in English, Marathi, and Hindi
-for any simple or complex question asked by farmers.
+Generates clear, accurate, and distinct answers in English, Marathi, and Hindi
+for any question asked by farmers about the 11 welfare schemes:
+- Documents required
+- Financial benefits & subsidies
+- How to apply & portal links
+- Eligibility criteria & personalized evaluation
+- Reasons for ineligibility
+- General scheme overview / about
 """
 
 from typing import Any
+import re
 
-
+# 1. Documents required
 DOC_KEYWORDS = {
-    "document", "documents", "paper", "papers", "proof", "form", "require", "required",
-    "needed", "need", "paperwork", "certificate", "id proof", "record", "records",
-    "कागदपत्र", "कागदपत्रे", "दाखला", "कागद", "दस्तावेज़", "दस्तावेज", "कागजात", "प्रमाण",
-    "कागद काय", "काय लागते", "काय लागेल", "प्रमाणपत्र",
-    "दस्तावेज़ क्या", "क्या चाहिए", "कागज़ात",
+    "document", "documents", "paper", "papers", "proof", "form", "paperwork",
+    "certificate", "id proof", "record", "records", "7/12", "7 12",
+    # Hindi
+    "दस्तावेज", "दस्तावेज़", "कागजात", "कागज़ात", "डॉक्यूमेंट", "डॉक्यूमेंट्स",
+    "प्रमाण पत्र", "प्रमाणपत्र", "कागद", "क्या कागद", "क्या दस्तावेज", "दस्तावेज क्या",
+    "कौन से दस्तावेज", "कौन से कागजात", "कागजात क्या",
+    # Marathi
+    "कागदपत्र", "कागदपत्रे", "कागदपत्रांची", "दाखला", "डॉक्युमेंट", "डॉक्युमेंट्स",
+    "कागदपत्रांची यादी", "काय काय लागेल", "काय कागदपत्रे", "कोणती कागदपत्रे",
+    "कागदपत्रे काय", "कागदपत्र काय", "कागद काय",
 }
 
+# 2. Financial benefits, subsidy, payment, installment
 MONEY_KEYWORDS = {
     "how much", "amount", "money", "rupees", "subsidy", "cost", "pay", "share",
-    "percentage", "rate", "benefit", "financial", "grant", "funds", "compensation",
-    "किती", "पैसे", "रुपये", "अनुदान", "खर्च", "हप्ता", "फायदा", "नुकसान भरपाई",
-    "किती मिळते", "किती रक्कम", "अनुदान किती",
-    "कितना", "कितने", "सब्सिडी", "लाभ", "राशि", "किस्त", "धनराशि", "अनुदान कितना",
+    "percentage", "rate", "benefit", "benefits", "financial", "grant", "funds",
+    "compensation", "installment",
+    # Hindi
+    "कितना", "कितने", "सब्सिडी", "लाभ", "फायदा", "फायदे", "राशि", "किस्त",
+    "धनराशि", "अनुदान", "पैसा", "पैसे", "रुपये", "मुआवजा", "सहायता",
+    "कितना पैसा", "कितनी सब्सिडी", "कितने रुपये", "क्या फायदा", "क्या लाभ",
+    "लाभ क्या", "फायदा क्या", "कितनी राशि",
+    # Marathi
+    "किती", "पैसे", "रुपये", "अनुदान", "खर्च", "हप्ता", "फायदा", "फायदे",
+    "लाभ", "नुकसान भरपाई", "सबसिडी", "मदत", "किती मिळतात", "किती मिळते",
+    "किती रक्कम", "अनुदान किती", "काय फायदा", "काय फायदे", "काय लाभ",
+    "लाभ काय", "फायदे काय",
 }
 
-ELIGIBILITY_KEYWORDS = {
-    "eligible", "eligibility", "can i", "qualify", "am i", "apply", "get", "who can",
-    "who is eligible", "criteria", "conditions", "requirement", "is i eligible",
-    "पात्र", "पात्रता", "मिळेल", "मिळेल का", "लागू", "अर्ज करू शकतो",
-    "मला मिळेल का", "मी घेऊ शकतो का", "अटी काय",
-    "मिलेगा", "मिलेगा क्या", "आवेदन कर सकता", "मुझे मिलेगा", "पात्रता क्या है",
-}
-
+# 3. How to apply, registration, portal, website
 APPLY_KEYWORDS = {
-    "how to apply", "where to apply", "portal", "website", "process", "link",
-    "registration", "online", "offline", "submit", "procedure", "steps",
-    "अर्ज कसा", "कुठे अर्ज", "नोंदणी कशी", "पोर्टल", "वेबसाइट", "अर्ज प्रक्रिया",
-    "कुठे नोंदणी", "ऑनलाईन अर्ज",
-    "आवेदन कैसे", "कहाँ आवेदन", "रजिस्ट्रेशन", "ऑनलाइन आवेदन",
+    "how to apply", "where to apply", "how can i apply", "registration", "portal",
+    "website", "process", "link", "online apply", "procedure", "steps", "submit",
+    # Hindi
+    "आवेदन कैसे", "कहाँ आवेदन", "आवेदन करना", "फॉर्म कैसे", "रजिस्ट्रेशन",
+    "ऑनलाइन आवेदन", "अप्लाई कैसे", "पोर्टल", "वेबसाइट", "लिंक क्या है",
+    "प्रक्रिया क्या", "आवेदन प्रक्रिया", "कहाँ जाना", "कहाँ संपर्क",
+    # Marathi
+    "अर्ज कसा", "कुठे अर्ज", "अर्ज करावा", "अर्ज करायचा", "फॉर्म कसा",
+    "नोंदणी कशी", "पोर्टल", "वेबसाइट", "ऑनलाईन अर्ज", "अप्लाय कसा",
+    "अप्लाय कसे", "अर्ज प्रक्रिया", "नोंदणी प्रक्रिया", "अर्ज कुठे",
+    "अर्ज करण्यासाठी",
 }
 
-WHY_KEYWORDS = {
-    "why", "reason", "explain", "because", "cause", "what is the reason", "how come",
-    "why not", "why am i not", "why can't", "why cannot", "what makes",
-    "का", "कारण", "कशामुळे", "का नाही", "कसे",
-    "क्यों", "कारण बताएं", "क्यों नहीं", "वजह", "कैसे",
+# 4. Eligibility & qualification (contains root and predicates in HI/MR)
+ELIGIBILITY_KEYWORDS = {
+    "eligible", "eligibility", "can i apply", "who can apply", "who is eligible",
+    "criteria", "conditions", "qualify", "do i qualify", "can i get", "rules",
+    "who qualifies", "am i",
+    # Hindi
+    "पात्र", "पात्रता", "पात्र हूँ", "पात्र है", "पात्र हैं", "क्या मैं पात्र",
+    "किसे मिलेगा", "किसके लिए है", "कौन पात्र", "शर्तें क्या", "नियम क्या",
+    "एलिजिबल हूँ", "एलिजिबल है", "मुझे मिलेगा क्या", "आवेदन कर सकता हूँ",
+    "क्या मुझे मिलेगा", "पात्रता की शर्तें", "शर्तें", "नियम",
+    # Marathi
+    "पात्र", "पात्रता", "पात्र आहे", "पात्र आहेत", "मी पात्र", "कोण पात्र",
+    "पात्र कोण", "कोणाला मिळते", "कोणासाठी आहे", "अटी काय", "शर्ती काय",
+    "नियम काय", "एलिजिबल आहे", "मला मिळेल का", "मी अर्ज करू शकतो का",
+    "पात्रतेच्या अटी", "अटी", "नियम",
 }
+
+# 5. Why ineligible / reasons
+WHY_KEYWORDS = {
+    "why not", "why am i not", "why ineligible", "reason for rejection", "why can't i",
+    "why cannot", "what makes me ineligible", "why was i rejected",
+    # Hindi — use multi-word phrases so single particles like 'का' or 'कैसे' don't match
+    "क्यों नहीं", "पात्र क्यों नहीं", "कारण क्या है", "अपात्र क्यों", "क्यों नहीं मिला",
+    "वजह क्या है", "कारण बताओ", "क्यों अपात्र",
+    # Marathi — use multi-word phrases so 'का' doesn't falsely match on 'काय'
+    "का नाही", "का अपात्र", "पात्र का नाही", "कारण काय आहे", "कारण काय",
+    "कशामुळे नाही", "नाकारले का", "का मिळाले नाही", "अपात्र का",
+}
+
+# 6. General overview / what is the scheme
+OVERVIEW_KEYWORDS = {
+    "what is", "tell me about", "information about", "overview", "details of",
+    "explain", "what does", "about scheme",
+    # Hindi
+    "क्या है", "के बारे में", "जानकारी दें", "जानकारी बताइए", "विवरण दें",
+    "योजना क्या", "पूरी जानकारी", "विस्तार से बताएं",
+    # Marathi
+    "काय आहे", "बद्दल माहिती", "बद्दल सांगा", "माहिती द्या", "माहिती सांगा",
+    "तपशील सांगा", "योजना काय", "माहिती काय", "सविस्तर सांगा",
+}
+
+
+def _has_any(text: str, kw_set: set) -> bool:
+    """Check if any keyword phrase appears in lowercased text."""
+    return any(k in text for k in kw_set)
 
 
 def synthesize_answer(
@@ -59,7 +118,7 @@ def synthesize_answer(
     application_status: str = "open",
 ) -> str:
     """
-    Synthesizes a short, simple, plain-language conversational answer
+    Synthesizes a short, precise, plain-language conversational answer
     tailored to the farmer's question and active farm profile.
     """
     raw = query.lower()
@@ -74,17 +133,18 @@ def synthesize_answer(
     docs_list = scheme.get("documents_required", {}).get(lang, [])
     if not docs_list:
         docs_list = scheme.get("documents_required", {}).get("en", [])
-    docs_str = ", ".join(docs_list) if docs_list else (
-        "Aadhaar Card, 7/12 land record, bank passbook" if lang == "en"
-        else ("आधार कार्ड, ७/१२ उतारा, बँक पासबुक" if lang == "mr"
-              else "आधार कार्ड, 7/12 भूमि रिकॉर्ड, बैंक पासबुक")
+    
+    docs_formatted = "\n".join(f"• {d}" for d in docs_list) if docs_list else (
+        "• आधार कार्ड\n• ७/१२ उतारा\n• बँक पासबुक" if lang == "mr"
+        else ("• आधार कार्ड\n• 7/12 भूमि रिकॉर्ड\n• बैंक पासबुक" if lang == "hi"
+              else "• Aadhaar card\n• 7/12 land record\n• Bank passbook")
     )
 
     link = scheme.get("official_link", "mahadbt.maharashtra.gov.in")
     is_eligible = eval_result.get("eligible", True)
     note = eval_result.get("note", "")
 
-    # --- Application status warning banner (shown for apply-intent answers) ---
+    # Application status warning
     CLOSED_STATUSES = {"closed", "portal_closed", "cycle_based", "unconfirmed"}
     _status_warning = {
         "closed": {
@@ -108,88 +168,27 @@ def synthesize_answer(
             "mr": "⚠️ या योजनेची सध्याची अर्ज विंडो निश्चित नाही. अर्ज करण्यापूर्वी mahadbt.maharashtra.gov.in वर नवीनतम स्थिती तपासा.",
         },
     }
+    status_warn = ""
+    if application_status in CLOSED_STATUSES:
+        w = _status_warning.get(application_status, {})
+        status_warn = w.get(lang) or w.get("en", "")
 
-    def _get_status_warning() -> str:
-        if application_status in CLOSED_STATUSES:
-            w = _status_warning.get(application_status, {})
-            return w.get(lang) or w.get("en", "")
-        return ""
-
-    # Helper: check if ANY keyword from a set appears in the raw query
-    def has_any(kw_set: set) -> bool:
-        return any(k in raw for k in kw_set)
-
-    # 1. Documents question
-    if has_any(DOC_KEYWORDS):
-        if lang == "mr":
-            return (
-                f"📄 {name} साठी आवश्यक कागदपत्रे:\n{docs_str}\n\n"
-                f"तुम्ही {link} वर किंवा जवळच्या सीएससी केंद्रावर अर्ज करू शकता."
-            )
-        elif lang == "hi":
-            return (
-                f"📄 {name} के लिए आवश्यक दस्तावेज़:\n{docs_str}\n\n"
-                f"आप {link} पर या नजदीकी सीएससी केंद्र पर आवेदन कर सकते हैं।"
-            )
-        else:
-            return (
-                f"📄 Documents required for {name}:\n{docs_str}\n\n"
-                f"Applications can be submitted at {link} or your nearest CSC center."
-            )
-
-    # 2. How to apply question
-    if has_any(APPLY_KEYWORDS):
-        status_warn = _get_status_warning()
-        if lang == "mr":
-            apply_text = (
-                f"📝 {name} साठी अर्ज करणे सोपे आहे:\n"
-                f"1️⃣ {link} या अधिकृत पोर्टलवर जा.\n"
-                f"2️⃣ आधार कार्ड व ७/१२ उतारा तयार ठेवा.\n"
-                f"3️⃣ किंवा जवळच्या सीएससी केंद्रावर भेट द्या."
-            )
-        elif lang == "hi":
-            apply_text = (
-                f"📝 {name} के लिए आवेदन कैसे करें:\n"
-                f"1️⃣ आधिकारिक पोर्टल {link} पर जाएं।\n"
-                f"2️⃣ आधार कार्ड और 7/12 भूमि रिकॉर्ड तैयार रखें।\n"
-                f"3️⃣ या नजदीकी सीएससी केंद्र पर जाएं।"
-            )
-        else:
-            apply_text = (
-                f"📝 How to apply for {name}:\n"
-                f"1️⃣ Visit the official portal: {link}\n"
-                f"2️⃣ Keep your Aadhaar Card and 7/12 land record ready.\n"
-                f"3️⃣ Or visit your nearest Gram Panchayat / CSC center."
-            )
-        return f"{status_warn}\n\n{apply_text}".strip() if status_warn else apply_text
-
-    # 3. Money / Subsidy / How much question
-    if has_any(MONEY_KEYWORDS):
-        elig_status = "✅" if is_eligible else "❌"
-        if lang == "mr":
-            elig_text = f"तुमच्या शेतीसाठी: {note}" if note else ""
-            return f"{elig_status} {name} अंतर्गत लाभ:\n{benefit}\n\n{elig_text}".strip()
-        elif lang == "hi":
-            elig_text = f"आपके खेत के लिए: {note}" if note else ""
-            return f"{elig_status} {name} के तहत लाभ:\n{benefit}\n\n{elig_text}".strip()
-        else:
-            elig_text = f"For your farm profile: {note}" if note else ""
-            return f"{elig_status} Benefit under {name}:\n{benefit}\n\n{elig_text}".strip()
-
-    # 4. Why / Reason question (why am I eligible / not eligible)
-    if has_any(WHY_KEYWORDS):
+    # -----------------------------------------------------------------------
+    # 1. WHY INELIGIBLE / REASON
+    # -----------------------------------------------------------------------
+    if _has_any(raw, WHY_KEYWORDS):
         if is_eligible:
             if lang == "mr":
                 return (
                     f"✅ तुम्ही {name} साठी पात्र आहात!\n\n"
                     f"📋 कारण: {note}\n\n"
-                    f"💰 लाभ: {benefit}"
+                    f"💰 योजनेचा लाभ: {benefit}"
                 )
             elif lang == "hi":
                 return (
                     f"✅ आप {name} के लिए पात्र हैं!\n\n"
                     f"📋 कारण: {note}\n\n"
-                    f"💰 लाभ: {benefit}"
+                    f"💰 योजना का लाभ: {benefit}"
                 )
             else:
                 return (
@@ -217,89 +216,157 @@ def synthesize_answer(
                     f"💡 Tip: Updating your farm profile may change your eligibility."
                 )
 
-    # 5. Eligibility question (am I eligible, can I apply, do I qualify)
-    if has_any(ELIGIBILITY_KEYWORDS):
+    # -----------------------------------------------------------------------
+    # 2. DOCUMENTS QUESTION
+    # -----------------------------------------------------------------------
+    if _has_any(raw, DOC_KEYWORDS):
+        if lang == "mr":
+            return (
+                f"📄 **{name} साठी आवश्यक कागदपत्रे:**\n\n"
+                f"{docs_formatted}\n\n"
+                f"👉 अर्ज करण्यासाठी हे कागदपत्रे घेऊन {link} वर किंवा जवळच्या सीएससी केंद्रावर जा."
+            )
+        elif lang == "hi":
+            return (
+                f"📄 **{name} के लिए आवश्यक दस्तावेज़:**\n\n"
+                f"{docs_formatted}\n\n"
+                f"👉 आवेदन के लिए ये दस्तावेज़ लेकर {link} पर या नजदीकी सीएससी केंद्र पर जाएं।"
+            )
+        else:
+            return (
+                f"📄 **Documents required for {name}:**\n\n"
+                f"{docs_formatted}\n\n"
+                f"👉 Submit these documents at {link} or your nearest CSC center."
+            )
+
+    # -----------------------------------------------------------------------
+    # 3. HOW TO APPLY QUESTION
+    # -----------------------------------------------------------------------
+    if _has_any(raw, APPLY_KEYWORDS):
+        if lang == "mr":
+            apply_text = (
+                f"📝 **{name} साठी अर्ज कसा करावा:**\n\n"
+                f"1️⃣ अधिकृत पोर्टल **{link}** वर जा किंवा जवळच्या सीएससी (CSC) केंद्रावर भेट द्या.\n"
+                f"2️⃣ आधार कार्ड आणि ७/१२ उतारा सोबत ठेवा.\n"
+                f"3️⃣ फॉर्म भरून आवश्यक कागदपत्रे अपलोड करा आणि पोचपावती घ्या."
+            )
+        elif lang == "hi":
+            apply_text = (
+                f"📝 **{name} के लिए आवेदन कैसे करें:**\n\n"
+                f"1️⃣ आधिकारिक पोर्टल **{link}** पर जाएं या नजदीकी सीएससी केंद्र पर संपर्क करें।\n"
+                f"2️⃣ आधार कार्ड और 7/12 भूमि रिकॉर्ड साथ रखें।\n"
+                f"3️⃣ फॉर्म भरें, दस्तावेज़ अपलोड करें और पावती प्राप्त करें।"
+            )
+        else:
+            apply_text = (
+                f"📝 **How to apply for {name}:**\n\n"
+                f"1️⃣ Visit the official portal: **{link}** or visit your nearest CSC center.\n"
+                f"2️⃣ Keep your Aadhaar card and 7/12 land record ready.\n"
+                f"3️⃣ Fill the application, upload documents, and save your receipt."
+            )
+        return f"{status_warn}\n\n{apply_text}".strip() if status_warn else apply_text
+
+    # -----------------------------------------------------------------------
+    # 4. MONEY / BENEFIT / SUBSIDY QUESTION
+    # -----------------------------------------------------------------------
+    if _has_any(raw, MONEY_KEYWORDS):
+        elig_status = "✅" if is_eligible else "ℹ️"
+        if lang == "mr":
+            elig_text = f"तुमच्या शेतीसाठी पात्रता: {note}" if note else ""
+            return (
+                f"💰 **{name} अंतर्गत मिळणारा लाभ / अनुदान:**\n\n"
+                f"{benefit}\n\n"
+                f"{elig_status} {elig_text}".strip()
+            )
+        elif lang == "hi":
+            elig_text = f"आपके खेत के लिए पात्रता: {note}" if note else ""
+            return (
+                f"💰 **{name} के तहत मिलने वाला लाभ / सब्सिडी:**\n\n"
+                f"{benefit}\n\n"
+                f"{elig_status} {elig_text}".strip()
+            )
+        else:
+            elig_text = f"Eligibility for your farm: {note}" if note else ""
+            return (
+                f"💰 **Financial Benefit under {name}:**\n\n"
+                f"{benefit}\n\n"
+                f"{elig_status} {elig_text}".strip()
+            )
+
+    # -----------------------------------------------------------------------
+    # 5. ELIGIBILITY / CRITERIA QUESTION
+    # -----------------------------------------------------------------------
+    if _has_any(raw, ELIGIBILITY_KEYWORDS):
         if is_eligible:
             if lang == "mr":
                 return (
-                    f"✅ होय, तुम्ही {name} साठी पात्र आहात!\n\n"
-                    f"📋 {note}\n\n"
-                    f"💰 लाभ: {benefit}"
+                    f"✅ **होय, तुम्ही {name} साठी पात्र आहात!**\n\n"
+                    f"📋 **नियम व अट:** {note}\n\n"
+                    f"💰 **मिळणारा लाभ:** {benefit}\n\n"
+                    f"🌐 **अर्जाची लिंक:** {link}"
                 )
             elif lang == "hi":
                 return (
-                    f"✅ हाँ, आप {name} के लिए पात्र हैं!\n\n"
-                    f"📋 {note}\n\n"
-                    f"💰 लाभ: {benefit}"
+                    f"✅ **हाँ, आप {name} के लिए पात्र हैं!**\n\n"
+                    f"📋 **नियम व शर्तें:** {note}\n\n"
+                    f"💰 **मिलने वाला लाभ:** {benefit}\n\n"
+                    f"🌐 **आवेदन लिंक:** {link}"
                 )
             else:
                 return (
-                    f"✅ Yes, you qualify for {name}!\n\n"
-                    f"📋 {note}\n\n"
-                    f"💰 Benefit: {benefit}"
+                    f"✅ **Yes, you are eligible for {name}!**\n\n"
+                    f"📋 **Criteria:** {note}\n\n"
+                    f"💰 **Benefit:** {benefit}\n\n"
+                    f"🌐 **Apply at:** {link}"
                 )
         else:
             if lang == "mr":
                 return (
-                    f"❌ सध्या तुम्ही {name} साठी पात्र नाही.\n\n"
-                    f"📋 कारण: {note}\n\n"
-                    f"💡 प्रोफाइल अपडेट केल्यास पात्रता बदलू शकते."
+                    f"❌ **सध्या तुम्ही {name} साठी पात्र नाही.**\n\n"
+                    f"📋 **कारण:** {note}\n\n"
+                    f"💡 **टीप:** प्रोफाइलमधील जमिनीचा तपशील अपडेट केल्यास पात्रता बदलू शकते."
                 )
             elif lang == "hi":
                 return (
-                    f"❌ वर्तमान में आप {name} के लिए पात्र नहीं हैं।\n\n"
-                    f"📋 कारण: {note}\n\n"
-                    f"💡 प्रोफ़ाइल अपडेट करने पर पात्रता बदल सकती है।"
+                    f"❌ **वर्तमान में आप {name} के लिए पात्र नहीं हैं।**\n\n"
+                    f"📋 **कारण:** {note}\n\n"
+                    f"💡 **सुझाव:** अपनी प्रोफ़ाइल अपडेट करने पर पात्रता बदल सकती है।"
                 )
             else:
                 return (
-                    f"❌ You do not currently qualify for {name}.\n\n"
-                    f"📋 Reason: {note}\n\n"
-                    f"💡 Updating your profile may change your eligibility."
+                    f"❌ **You do not currently qualify for {name}.**\n\n"
+                    f"📋 **Reason:** {note}\n\n"
+                    f"💡 **Tip:** Updating your farm profile may change your eligibility."
                 )
 
-    # 6. Default structured summary — always gives useful info regardless of query
-    if is_eligible:
-        if lang == "mr":
-            return (
-                f"✅ {name}\n\n"
-                f"💰 लाभ: {benefit}\n\n"
-                f"📋 तुमच्यासाठी: {note}\n\n"
-                f"🌐 अर्जासाठी: {link}"
-            )
-        elif lang == "hi":
-            return (
-                f"✅ {name}\n\n"
-                f"💰 लाभ: {benefit}\n\n"
-                f"📋 आपके लिए: {note}\n\n"
-                f"🌐 आवेदन करें: {link}"
-            )
-        else:
-            return (
-                f"✅ {name}\n\n"
-                f"💰 Benefit: {benefit}\n\n"
-                f"📋 For your profile: {note}\n\n"
-                f"🌐 Apply at: {link}"
-            )
+    # -----------------------------------------------------------------------
+    # 6. OVERVIEW / ABOUT THE SCHEME (Default for general questions)
+    # -----------------------------------------------------------------------
+    status_emoji = "✅ पात्र" if is_eligible else "❌ सध्या अपात्र"
+    status_emoji_hi = "✅ पात्र" if is_eligible else "❌ वर्तमान में अपात्र"
+    status_emoji_en = "✅ Eligible" if is_eligible else "❌ Currently Not Eligible"
+
+    if lang == "mr":
+        return (
+            f"🌾 **{name} — योजनेची माहिती:**\n\n"
+            f"💰 **योजनेचा लाभ:** {benefit}\n\n"
+            f"📋 **तुमची पात्रता स्थिती:** {status_emoji} ({note})\n\n"
+            f"📄 **लागणारी कागदपत्रे:**\n{docs_formatted}\n\n"
+            f"🌐 **अधिकृत पोर्टल:** {link}"
+        )
+    elif lang == "hi":
+        return (
+            f"🌾 **{name} — योजना का विवरण:**\n\n"
+            f"💰 **योजना का लाभ:** {benefit}\n\n"
+            f"📋 **आपकी पात्रता स्थिति:** {status_emoji_hi} ({note})\n\n"
+            f"📄 **आवश्यक दस्तावेज़:**\n{docs_formatted}\n\n"
+            f"🌐 **आधिकारिक पोर्टल:** {link}"
+        )
     else:
-        if lang == "mr":
-            return (
-                f"❌ {name} — सध्या पात्र नाही\n\n"
-                f"📋 कारण: {note}\n\n"
-                f"💰 योजनेचा लाभ: {benefit}\n\n"
-                f"💡 प्रोफाइल अपडेट केल्यास पात्रता बदलू शकते."
-            )
-        elif lang == "hi":
-            return (
-                f"❌ {name} — वर्तमान में अपात्र\n\n"
-                f"📋 कारण: {note}\n\n"
-                f"💰 योजना का लाभ: {benefit}\n\n"
-                f"💡 प्रोफ़ाइल अपडेट करने पर पात्रता बदल सकती है।"
-            )
-        else:
-            return (
-                f"❌ {name} — Currently not eligible\n\n"
-                f"📋 Reason: {note}\n\n"
-                f"💰 Scheme benefit: {benefit}\n\n"
-                f"💡 Tip: Updating your profile may change your eligibility."
-            )
+        return (
+            f"🌾 **{name} — Overview:**\n\n"
+            f"💰 **Benefit:** {benefit}\n\n"
+            f"📋 **Your Eligibility:** {status_emoji_en} ({note})\n\n"
+            f"📄 **Required Documents:**\n{docs_formatted}\n\n"
+            f"🌐 **Official Portal:** {link}"
+        )
