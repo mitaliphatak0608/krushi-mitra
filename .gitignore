@@ -10,6 +10,23 @@ env/
 
 # Environment variables
 .env
+**/.env
+.env*
+!.env.example
+
+# Audio cache and audio files
+*.ogg
+*.wav
+*.mp3
+*.m4a
+whatsapp_audio_cache/
+
+# Large binaries and vendor tools
+whatsapp_bot/ffmpeg*
+ffmpeg*/
+
+# Local farmer profile data
+data/farmer_profiles.json
 
 # VS Code
 .vscode/

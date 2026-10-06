@@ -710,6 +710,9 @@ _SCHEME_ALIASES: dict[str, str] = {
 _SCHEME_ALIASES_DEVA: dict[str, str] = {
     # 1. PM-KISAN
     "पीएम किसान": "PMKISAN", "पीएम-किसान": "PMKISAN", "पीएमकिसान": "PMKISAN",
+    "पीम किसान": "PMKISAN", "पीम-किसान": "PMKISAN", "पीज किसान": "PMKISAN",
+    "पी.एम. किसान": "PMKISAN", "पी एम किसान": "PMKISAN", "पीएम किसानी": "PMKISAN",
+    "किसान योजना": "PMKISAN", "पीएम योजना": "PMKISAN",
     "किसान सम्मान निधि": "PMKISAN", "किसान सन्मान निधी": "PMKISAN",
     "किसान सम्मान": "PMKISAN", "किसान सन्मान": "PMKISAN",
     "पंतप्रधान किसान सन्मान": "PMKISAN", "प्रधानमंत्री किसान सम्मान": "PMKISAN",
@@ -786,11 +789,13 @@ _SCHEME_ALIASES_DEVA: dict[str, str] = {
 def _alias_lookup(query: str) -> str | None:
     """Return scheme_id if a known alias matches in the query, else None.
     Checks longest aliases first to avoid partial mismatches."""
-    q = query.strip()
+    import unicodedata
+    q = unicodedata.normalize("NFKC", query.strip().replace("\u093c", ""))
     q_lower = q.lower()
-    # Check Devanagari aliases (exact substring, case-insensitive via lower not needed)
+    # Check Devanagari aliases (exact substring after NFKC and nukta strip)
     for alias, sid in sorted(_SCHEME_ALIASES_DEVA.items(), key=lambda x: len(x[0]), reverse=True):
-        if alias in q:
+        a_norm = unicodedata.normalize("NFKC", alias.replace("\u093c", ""))
+        if a_norm in q:
             return sid
     # Check Latin aliases (lowercase)
     for alias, sid in sorted(_SCHEME_ALIASES.items(), key=lambda x: len(x[0]), reverse=True):
@@ -912,21 +917,19 @@ def chat(body: ChatRequest) -> ChatResponse:
     is_all_schemes = (_alias_match is None) and (
         any(k in raw_query for k in ALL_SCHEMES_KEYWORDS)
         or (({"all", "every", "list"} & _query_words) and ("scheme" in raw_query or "yojana" in raw_query or "स्कीम" in raw_query))
-        # Pattern: "eligible" + "scheme/yojana" — "what scheme am I eligible for" / "कोणत्या स्कीमसाठी एलिजिबल"
-        or bool(_eligible_words & _query_words and _scheme_words & _query_words)
+        # Pattern: "eligible" + "scheme/yojana" + "which/what" — "what scheme am I eligible for" / "कोणत्या स्कीमसाठी एलिजिबल"
+        or bool(_eligible_words & _query_words and _scheme_words & _query_words and _which_words & _query_words)
         # Pattern: "eligible" + "which/what/konti/konte/कौन"
         or bool(_eligible_words & _query_words and _which_words & _query_words)
         # Pattern: "which/what" + "scheme/yojana" — "which schemes can I get"
         or bool(_which_words & _query_words and _scheme_words & _query_words)
         # Marathi combos
-        or (("सर्व" in raw_query or "सगळ्या" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
-        or ("माझ्यासाठी" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query))
-        or ("मला" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query or "पात्र" in raw_query or "एलिजिबल" in raw_query))
-        or ("मी" in raw_query and ("पात्र" in raw_query or "एलिजिबल" in raw_query))
+        or (("सर्व" in raw_query or "सगळ्या" in raw_query or "कोणती" in raw_query or "कोणत्या" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or ("माझ्यासाठी" in raw_query and ("सर्व" in raw_query or "कोणती" in raw_query or "कोणत्या" in raw_query or "पात्र" in raw_query))
+        or ("मी" in raw_query and ("कोणत्या" in raw_query or "कशासाठी" in raw_query) and ("पात्र" in raw_query or "एलिजिबल" in raw_query))
         # Hindi combos
-        or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
-        or ("मुझे" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query or "पात्र" in raw_query or "एलिजिबल" in raw_query))
-        or ("मेरे लिए" in raw_query and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or (("सभी" in raw_query or "सारे" in raw_query or "सूची" in raw_query or "कौन सी" in raw_query or "किस" in raw_query) and ("योजना" in raw_query or "स्कीम" in raw_query))
+        or ("मेरे लिए" in raw_query and ("सभी" in raw_query or "कौन सी" in raw_query or "पात्र" in raw_query))
     )
 
     if is_all_schemes:
