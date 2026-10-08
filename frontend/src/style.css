@@ -2,6 +2,8 @@
    across devices; this guarantees consistent Hindi/Marathi rendering regardless
    of what's installed on the farmer's phone. */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;700&display=swap');
+/* Inter — primary UI sans-serif for the chat and dashboard */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* Inject Tailwind CSS */
 @tailwind base;
