@@ -71,11 +71,16 @@ export default function VoiceAssistant({ lang, setLang, profile = {}, useAI = fa
 
   // "idle" | "listening" | "thinking" | "speaking" | "error"
   const [status, setStatus]   = useState("idle");
+  const [aiEnabled, setAiEnabled] = useState(useAI);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [lastUserText, setLastUserText]     = useState("");
   const [lastReplyText, setLastReplyText]   = useState("");
   const [errorMsg, setErrorMsg]             = useState("");
   const [autoListen, setAutoListen]         = useState(true); // hands-free loop toggle
+
+  useEffect(() => {
+    setAiEnabled(useAI);
+  }, [useAI]);
 
   const recognitionRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -175,18 +180,22 @@ export default function VoiceAssistant({ lang, setLang, profile = {}, useAI = fa
     setStatus("thinking");
     try {
       let data;
-      if (useAI) {
-        const aiRes = await fetch(AI_CHAT_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, language: lang, profile }),
-        });
-        if (aiRes.ok) {
-          data = await aiRes.json();
-          // Map AI response to ChatResponse shape for onExchange
-          data.found = true;
-          data.message = data.answer;
-          data.speech_text = data.speech_text || data.answer;
+      if (aiEnabled) {
+        try {
+          const aiRes = await fetch(AI_CHAT_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text, language: lang, profile }),
+          });
+          if (aiRes.ok) {
+            data = await aiRes.json();
+            // Map AI response to ChatResponse shape for onExchange
+            data.found = data.found !== undefined ? data.found : true;
+            data.message = data.answer || data.message;
+            data.speech_text = data.speech_text || data.answer || data.message;
+          }
+        } catch (e) {
+          console.warn("AI chat request failed, falling back to /chat:", e);
         }
       }
       
@@ -200,6 +209,8 @@ export default function VoiceAssistant({ lang, setLang, profile = {}, useAI = fa
         data = await res.json();
       }
 
+      // IMPORTANT: For voice, use the /ai/chat response's speech_text field for TTS
+      // rather than speaking long Markdown/citation content.
       const speechText = data.speech_text || data.message || "";
       setLastReplyText(speechText);
       onExchange && onExchange(text, data);
@@ -209,8 +220,7 @@ export default function VoiceAssistant({ lang, setLang, profile = {}, useAI = fa
       setStatus("error");
       speak(t.noServer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, profile, speak, onExchange]);
+  }, [lang, profile, speak, onExchange, aiEnabled, t.noServer]);
 
   const startListening = useCallback(async () => {
     if (nativeTtsSupported) window.speechSynthesis?.cancel();
@@ -340,6 +350,21 @@ export default function VoiceAssistant({ lang, setLang, profile = {}, useAI = fa
           <span className="text-sm font-semibold opacity-90">{t.title}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Smart AI toggle */}
+          <button
+            onClick={() => setAiEnabled((v) => !v)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all border"
+            style={{
+              backgroundColor: aiEnabled ? GOLD : "rgba(255,255,255,0.1)",
+              color: aiEnabled ? FOREST_DARK : "#ffffff",
+              borderColor: aiEnabled ? GOLD : "rgba(255,255,255,0.2)",
+            }}
+            title={aiEnabled ? "Smart AI Voice Mode Active" : "Standard Voice Mode Active"}
+          >
+            <span>✨</span>
+            <span>{aiEnabled ? "AI ON" : "AI OFF"}</span>
+          </button>
+
           <div className="flex rounded-full overflow-hidden border" style={{ borderColor: MOSS }}>
             {["en", "hi", "mr"].map((code) => (
               <button

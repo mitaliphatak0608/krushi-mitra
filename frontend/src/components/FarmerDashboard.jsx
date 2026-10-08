@@ -9,7 +9,6 @@ import {
 import "./dashboard.css";
 import NotificationBell from "./NotificationBell";
 
-
 // Eligibility is now evaluated server-side — one source of truth.
 const ELIGIBILITY_ENDPOINT = "http://localhost:8000/eligibility";
 

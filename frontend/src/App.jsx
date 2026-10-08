@@ -4,6 +4,7 @@ import KrushiMitraAdminDashboard from "./components/KrushiMitraAdminDashboard.js
 import KrushiMitraChatUI from "./components/KrushiMitraChatUI.jsx";
 import AuthPage from "./components/AuthPage.jsx";
 import FarmerDashboard from "./components/FarmerDashboard.jsx";
+import SmsDemoUI from "./components/SmsDemoUI.jsx";
 import { Loader2 } from "lucide-react";
 import "./style.css";
 
@@ -159,6 +160,8 @@ export default function App() {
               <KrushiMitraAdminDashboard onLogout={handleLogout} />
             </RequireAdminAuth>
           } />
+
+          <Route path="/sms-demo" element={<SmsDemoUI />} />
 
           <Route path="*" element={<Navigate to="/auth" replace />} />
         </Routes>

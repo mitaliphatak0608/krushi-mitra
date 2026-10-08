@@ -80,6 +80,32 @@ def init_db() -> None:
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sms_sessions (
+                phone_number TEXT PRIMARY KEY,
+                state TEXT NOT NULL,
+                selected_scheme_id TEXT,
+                profile_data TEXT NOT NULL,
+                recommended_schemes TEXT,
+                language TEXT,
+                extra_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sms_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone_number TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                message_text TEXT NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
         conn.commit()
     # Seed authentic verified notifications
     _seed_notifications()
@@ -553,3 +579,91 @@ def reset_settings() -> dict[str, Any]:
         conn.execute("DELETE FROM settings")
         conn.commit()
     return DEFAULT_SETTINGS.copy()
+
+
+# SMS Persistence API
+
+def get_sms_session(phone_number: str) -> Optional[dict[str, Any]]:
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT * FROM sms_sessions WHERE phone_number = ?", (phone_number,)).fetchone()
+        if not row:
+            return None
+            
+        session = {
+            "phone_number": row["phone_number"],
+            "state": row["state"],
+            "language": row["language"],
+            "selected_scheme_id": row["selected_scheme_id"]
+        }
+        
+        try:
+            session["profile"] = json.loads(row["profile_data"]) if row["profile_data"] else {}
+        except:
+            session["profile"] = {}
+            
+        try:
+            session["recommended_schemes"] = json.loads(row["recommended_schemes"]) if row["recommended_schemes"] else []
+        except:
+            session["recommended_schemes"] = []
+            
+        try:
+            extra_data = json.loads(row["extra_data"]) if row["extra_data"] else {}
+            for k, v in extra_data.items():
+                session[k] = v
+        except:
+            pass
+            
+        return session
+
+
+def save_sms_session(phone_number: str, session: dict[str, Any]) -> None:
+    state = session.get("state", "INIT")
+    language = session.get("language", "en")
+    selected_scheme_id = session.get("selected_scheme_id", None)
+    profile_data = json.dumps(session.get("profile", {}))
+    recommended_schemes = json.dumps(session.get("recommended_schemes", []))
+    
+    # Extra properties (like focused_scheme_id, pending_scheme, etc)
+    extra_data_dict = {}
+    standard_keys = {"phone_number", "state", "language", "selected_scheme_id", "profile", "recommended_schemes"}
+    for k, v in session.items():
+        if k not in standard_keys:
+            extra_data_dict[k] = v
+    extra_data = json.dumps(extra_data_dict)
+    
+    with get_db_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO sms_sessions 
+            (phone_number, state, selected_scheme_id, profile_data, recommended_schemes, language, extra_data, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(phone_number) DO UPDATE SET
+            state=excluded.state,
+            selected_scheme_id=excluded.selected_scheme_id,
+            profile_data=excluded.profile_data,
+            recommended_schemes=excluded.recommended_schemes,
+            language=excluded.language,
+            extra_data=excluded.extra_data,
+            updated_at=CURRENT_TIMESTAMP
+            """,
+            (phone_number, state, selected_scheme_id, profile_data, recommended_schemes, language, extra_data)
+        )
+        conn.commit()
+
+
+def save_sms_message(phone_number: str, direction: str, message_text: str) -> None:
+    with get_db_connection() as conn:
+        conn.execute(
+            "INSERT INTO sms_messages (phone_number, direction, message_text) VALUES (?, ?, ?)",
+            (phone_number, direction, message_text)
+        )
+        conn.commit()
+
+
+def get_sms_history(phone_number: str) -> list[dict[str, Any]]:
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM sms_messages WHERE phone_number = ? ORDER BY timestamp ASC",
+            (phone_number,)
+        ).fetchall()
+        return [dict(r) for r in rows]
