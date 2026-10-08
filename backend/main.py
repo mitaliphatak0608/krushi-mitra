@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -9,12 +10,15 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 
 from backend import auth_utils, database, knowledge_base, qa_engine, stt_tts, voice_utils
-from backend import ai_engine
+from backend import ai_engine, ai_prompts
 from backend import rules as eligibility
+from backend.sms_service import process_sms
+
+logger = logging.getLogger(__name__)
 
 # Initialize SQLite database
 database.init_db()
@@ -187,6 +191,17 @@ class CreateNotificationRequest(BaseModel):
     official_link: str | None = None
 
 
+class SmsSimulatorRequest(BaseModel):
+    from_str: str = Field(..., alias="from")
+    message: str
+
+class SmsSimulatorResponse(BaseModel):
+    success: bool
+    message: str
+    state: str
+    language: str | None = None
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -200,6 +215,20 @@ def health() -> dict[str, str]:
 def get_schemes() -> list[dict[str, Any]]:
     """Return all scheme records from the JSON data file."""
     return schemes
+
+
+@app.post("/sms/simulator", response_model=SmsSimulatorResponse)
+def sms_simulator(body: SmsSimulatorRequest) -> SmsSimulatorResponse:
+    """Isolated SMS simulation endpoint."""
+    result = process_sms(body.from_str, body.message)
+    return SmsSimulatorResponse(**result)
+
+
+@app.get("/sms/history/{phone_number}")
+def get_sms_conversation_history(phone_number: str) -> list[dict[str, Any]]:
+    """Retrieves SMS history for the simulator."""
+    history = database.get_sms_history(phone_number)
+    return history
 
 
 # ---------------------------------------------------------------------------
@@ -1088,6 +1117,17 @@ class AIChatResponse(BaseModel):
     grounded: bool = True
     analysis: dict[str, Any] | None = None
     speech_text: str | None = None
+    found: bool = True
+    type: str | None = None
+    scheme_id: str | None = None
+    scheme_name: dict[str, Any] | None = None
+    eligible: bool | None = None
+    note: str | None = None
+    benefit: dict[str, Any] | None = None
+    documents: dict[str, Any] | None = None
+    link: str | None = None
+    score: float | None = None
+    schemes: list[Any] | None = None
 
 
 class AITranscribeResponse(BaseModel):
@@ -1109,13 +1149,92 @@ def _require_ai():
         )
 
 
+def _chat_to_ai_response(chat_res: ChatResponse, lang: str) -> AIChatResponse:
+    """Map a deterministic /chat response into an AIChatResponse."""
+    if not chat_res.found:
+        not_found_msgs = {
+            "en": "I couldn't find a matching scheme for that query. Try asking about: crop insurance, drip irrigation, solar pump, kisan credit card, or loan waiver.",
+            "hi": "इस प्रश्न के लिए कोई योजना नहीं मिली। कोशिश करें: फसल बीमा, ड्रिप सिंचाई, सौर पंप, किसान क्रेडिट कार्ड।",
+            "mr": "या प्रश्नासाठी योजना सापडली नाही. वापरून पाहा: पीक विमा, ठिबक सिंचन, सौर पंप, किसान क्रेडिट कार्ड.",
+        }
+        ans = not_found_msgs.get(lang, not_found_msgs["en"])
+        return AIChatResponse(
+            answer=ans,
+            language=lang,
+            intent="unknown",
+            sources=[],
+            grounded=False,
+            analysis={"intent": "unknown", "language": lang, "_fallback": True},
+            speech_text=ans,
+            found=False,
+            type=chat_res.type,
+            score=chat_res.score,
+        )
+
+    sources = []
+    if chat_res.link:
+        s_name = ""
+        if isinstance(chat_res.scheme_name, dict):
+            s_name = chat_res.scheme_name.get(lang) or chat_res.scheme_name.get("en") or (chat_res.scheme_id or "")
+        elif chat_res.scheme_name:
+            s_name = str(chat_res.scheme_name)
+        elif chat_res.scheme_id:
+            s_name = chat_res.scheme_id
+
+        sources.append({
+            "name": s_name or "Government Scheme Database",
+            "authority": "Central & Maharashtra State Government",
+            "url": chat_res.link,
+            "last_verified": "2026-08-22",
+        })
+    elif chat_res.type == "all_schemes":
+        sources.append({
+            "name": "Government Scheme Database",
+            "authority": "Central & Maharashtra State Government",
+            "url": "mahadbt.maharashtra.gov.in",
+            "last_verified": "2026-08-22",
+        })
+
+    speech_text = None
+    if chat_res.message:
+        speech_text = voice_utils.simplify_ai_response(chat_res.message, lang)
+
+    return AIChatResponse(
+        answer=chat_res.message or "",
+        language=lang,
+        intent=chat_res.type or "scheme_query",
+        sources=sources,
+        grounded=True,
+        analysis={"intent": chat_res.type or "scheme_query", "language": lang, "_fallback": True},
+        speech_text=speech_text or chat_res.message,
+        found=True,
+        type=chat_res.type,
+        scheme_id=chat_res.scheme_id,
+        scheme_name=chat_res.scheme_name,
+        eligible=chat_res.eligible,
+        note=chat_res.note,
+        benefit=chat_res.benefit,
+        documents=chat_res.documents,
+        link=chat_res.link,
+        score=chat_res.score,
+        schemes=chat_res.schemes,
+    )
+
+
 @app.post("/ai/chat", response_model=AIChatResponse)
 def ai_chat(body: AIChatRequest):
-    _require_ai()
+    lang = body.language if body.language in ("en", "hi", "mr") else "en"
+
+    # If AI provider / API key is not configured or disabled, fall back safely to /chat
+    if not ai_engine.is_ai_enabled() or not ai_engine.has_llm_api_key():
+        chat_res = chat(ChatRequest(query=body.message, lang=lang, profile=body.profile))
+        return _chat_to_ai_response(chat_res, lang)
+
     try:
-        analysis = ai_engine.analyze_query(body.message, body.language)
+        analysis = ai_engine.analyze_query(body.message, lang)
+
         faiss_results = None
-        if analysis.get("intent") in ("scheme_query", "eligibility_check"):
+        if analysis.get("intent") in ("scheme_query", "eligibility_check", "unknown") or not analysis.get("intent"):
             try:
                 model_st = get_model()
                 index, meta = load_vector_store()
@@ -1134,7 +1253,8 @@ def ai_chat(body: AIChatRequest):
                     faiss_results.append({"scheme_id": sid, "score": float(score)})
                     if len(faiss_results) >= 3:
                         break
-            except Exception:
+            except Exception as exc:
+                logger.warning("FAISS search error in ai_chat: %s", exc)
                 faiss_results = None
 
         agri_kb_results = None
@@ -1146,29 +1266,66 @@ def ai_chat(body: AIChatRequest):
         if analysis.get("intent") in agri_intents:
             try:
                 agri_kb_results = knowledge_base.search_agri_knowledge(
-                    query=body.message, language=body.language,
-                    crop=analysis.get("crop"), use_test=False,
+                    query=body.message,
+                    language=lang,
+                    crop=analysis.get("crop"),
+                    use_test=False,
                 )
             except Exception:
                 agri_kb_results = None
 
-        context = ai_engine.gather_context(analysis, body.profile, faiss_results, agri_kb_results)
-        result = ai_engine.generate_response(body.message, analysis, context, body.profile, agri_kb_results)
-        speech_text = voice_utils.simplify_ai_response(result["answer"], result["language"])
+        context = ai_engine.gather_context(
+            analysis, body.profile, faiss_results, agri_kb_results
+        )
+
+        result = ai_engine.generate_response(
+            body.message, analysis, context, body.profile, agri_kb_results
+        )
+
+        # If LLM response failed to ground or gave an unverified fallback despite a good FAISS match, fall back to /chat
+        if (not result.get("grounded") or result.get("answer") in ai_prompts.UNVERIFIED_FALLBACK.values()) and faiss_results:
+            top_score = faiss_results[0].get("score", 0.0) if faiss_results else 0.0
+            if top_score >= NO_MATCH_THRESHOLD:
+                chat_res = chat(ChatRequest(query=body.message, lang=lang, profile=body.profile))
+                if chat_res.found:
+                    return _chat_to_ai_response(chat_res, lang)
+
+        speech_text = voice_utils.simplify_ai_response(
+            result["answer"], result["language"]
+        )
+
+        # Matched scheme details from deterministic rules engine
+        matched_scheme = None
+        _, s_map = ai_engine._load_schemes()
+        matched_scheme = ai_engine._find_scheme(analysis, faiss_results, s_map)
+        ev_result = None
+        if matched_scheme:
+            ev_result = eligibility.evaluate(matched_scheme["scheme_id"], body.profile)
 
         return AIChatResponse(
             answer=result["answer"], language=result["language"],
             intent=result["intent"], sources=result["sources"],
             grounded=result["grounded"], analysis=result.get("analysis"),
             speech_text=speech_text,
+            found=result["grounded"],
+            type=analysis.get("intent"),
+            scheme_id=matched_scheme.get("scheme_id") if matched_scheme else None,
+            scheme_name=matched_scheme.get("scheme_name") if matched_scheme else None,
+            eligible=ev_result.get("eligible") if ev_result else None,
+            note=ev_result.get("note") if ev_result else None,
+            benefit=matched_scheme.get("benefit_text") if matched_scheme else None,
+            documents=matched_scheme.get("documents_required") if matched_scheme else None,
+            link=matched_scheme.get("official_link") if matched_scheme else None,
+            score=faiss_results[0].get("score") if faiss_results else None,
         )
     except stt_tts.ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except stt_tts.ExternalAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
-    except Exception:
-        logger.exception("AI chat failed")
-        raise HTTPException(status_code=500, detail="AI processing failed. Please try again.")
+    except Exception as exc:
+        logger.warning("AI processing failed, safely falling back to /chat: %s", exc)
+        chat_res = chat(ChatRequest(query=body.message, lang=lang, profile=body.profile))
+        return _chat_to_ai_response(chat_res, lang)
 
 
 @app.post("/ai/transcribe", response_model=AITranscribeResponse)

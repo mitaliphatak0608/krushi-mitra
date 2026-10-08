@@ -68,6 +68,12 @@ def is_ai_enabled() -> bool:
     return os.environ.get("AI_CHAT_ENABLED", "true").lower() in ("true", "1", "yes")
 
 
+def has_llm_api_key() -> bool:
+    """Check if a valid, non-placeholder OpenAI API key is configured."""
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    return bool(api_key and not api_key.startswith("your-"))
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # 1.  SEMANTIC ANALYSIS
 # ══════════════════════════════════════════════════════════════════════════

@@ -7,6 +7,7 @@ import {
 import VoiceAssistant from "./VoiceAssistant";
 
 const CHAT_ENDPOINT    = "http://localhost:8000/chat";
+const AI_CHAT_ENDPOINT = "http://localhost:8000/ai/chat";
 const SCHEMES_ENDPOINT = "http://localhost:8000/schemes";
 
 const FOREST      = "#2C5F2D";
@@ -67,6 +68,8 @@ const UI_TEXT = {
     notFound: "I couldn't find a matching scheme for that query. Try: crop insurance, drip irrigation, solar pump, kisan credit card, or loan waiver.",
     noServer: "Cannot reach the server. Please make sure the backend is running on port 8000.",
     typing: "Thinking…",
+    aiOn: "Smart AI ON", aiOff: "AI Mode OFF", aiTitle: "Smart AI Mode (Semantic Search + AI Engine)",
+    sourcesTitle: "Verified Sources:",
   },
   hi: {
     title: "कृषी मित्र", tagline: "किसी भी किसान योजना के बारे में अपनी भाषा में पूछें",
@@ -80,6 +83,8 @@ const UI_TEXT = {
     notFound: "इस प्रश्न के लिए कोई योजना नहीं मिली। कोशिश करें: फसल बीमा, ड्रिप सिंचाई, सौर पंप, किसान क्रेडिट कार्ड।",
     noServer: "सर्वर से कनेक्ट नहीं हो सका। कृपया बैकएंड चालू करें।",
     typing: "सोच रहा हूं…",
+    aiOn: "स्मार्ट AI चालू", aiOff: "AI मोड बंद", aiTitle: "स्मार्ट AI टॉगल करें",
+    sourcesTitle: "सत्यापित स्रोत:",
   },
   mr: {
     title: "कृषी मित्र", tagline: "कोणत्याही शेतकरी योजनेबद्दल तुमच्या भाषेत विचारा",
@@ -93,6 +98,8 @@ const UI_TEXT = {
     notFound: "या प्रश्नासाठी योजना सापडली नाही. वापरून पाहा: पीक विमा, ठिबक सिंचन, सौर पंप, किसान क्रेडिट कार्ड.",
     noServer: "सर्व्हरशी कनेक्ट होता आले नाही. कृपया बॅकएंड सुरू करा.",
     typing: "विचार करतो आहे…",
+    aiOn: "स्मार्ट AI सुरू", aiOff: "AI मोड बंद", aiTitle: "स्मार्ट AI टॉगल करा",
+    sourcesTitle: "अधिकृत संदर्भ:",
   },
 };
 
@@ -354,8 +361,9 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
   const [showProfile, setShowProfile] = useState(true);
   const [input, setInput]             = useState("");
   const [isLoading, setIsLoading]     = useState(false);
-  const [quickChips, setQuickChips]   = useState([]);
   const [showVoice, setShowVoice]     = useState(false);
+  const [useAI, setUseAI]             = useState(true);
+  const [quickChips, setQuickChips]   = useState([]);
   const [messages, setMessages]       = useState([
     { id: 1, from: "bot", text: t.greeting },
   ]);
@@ -396,14 +404,15 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
     setIsLoading(true);
 
     try {
-      const res = await fetch(CHAT_ENDPOINT, {
+      const endpoint = useAI ? AI_CHAT_ENDPOINT : CHAT_ENDPOINT;
+      const payload = useAI
+        ? { message: text, language: lang, profile: effectiveProfile }
+        : { query: text, lang: lang, profile: effectiveProfile };
+
+      const res = await fetch(endpoint, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          query:   text,
-          lang:    lang,
-          profile: effectiveProfile,
-        }),
+        body:    JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -413,10 +422,29 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
       const data = await res.json();
 
       let botMsg;
-      if (data.found) {
-        botMsg = { id: Date.now() + 1, from: "bot", response: data };
+      if (useAI) {
+        const found = data.found !== false;
+        if (found) {
+          botMsg = {
+            id: Date.now() + 1,
+            from: "bot",
+            text: data.answer || data.message || "",
+            response: data,
+            sources: data.sources || [],
+          };
+        } else {
+          botMsg = {
+            id: Date.now() + 1,
+            from: "bot",
+            text: data.answer || t.notFound,
+          };
+        }
       } else {
-        botMsg = { id: Date.now() + 1, from: "bot", text: t.notFound };
+        if (data.found) {
+          botMsg = { id: Date.now() + 1, from: "bot", response: data };
+        } else {
+          botMsg = { id: Date.now() + 1, from: "bot", text: t.notFound };
+        }
       }
       setMessages((m) => [...m, botMsg]);
 
@@ -450,18 +478,36 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
           </div>
         </div>
 
-        {/* Language toggle */}
-        <div className="flex rounded-full overflow-hidden border" style={{ borderColor: MOSS }}>
-          {["en", "hi", "mr"].map((code) => (
-            <button
-              key={code}
-              onClick={() => setLang(code)}
-              className="px-3 py-1 text-xs font-semibold"
-              style={{ backgroundColor: lang === code ? GOLD : "transparent", color: lang === code ? FOREST_DARK : "#fff" }}
-            >
-              {code === "en" ? "EN" : code === "hi" ? "हिं" : "मर"}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {/* Smart AI toggle button */}
+          <button
+            onClick={() => setUseAI((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all border shadow-xs"
+            style={{
+              backgroundColor: useAI ? GOLD : "rgba(255,255,255,0.15)",
+              color: useAI ? FOREST_DARK : "#ffffff",
+              borderColor: useAI ? GOLD : MOSS,
+            }}
+            title={t.aiTitle}
+            aria-label="Toggle Smart AI"
+          >
+            <span>✨</span>
+            <span>{useAI ? t.aiOn : t.aiOff}</span>
+          </button>
+
+          {/* Language toggle */}
+          <div className="flex rounded-full overflow-hidden border" style={{ borderColor: MOSS }}>
+            {["en", "hi", "mr"].map((code) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                className="px-3 py-1 text-xs font-semibold"
+                style={{ backgroundColor: lang === code ? GOLD : "transparent", color: lang === code ? FOREST_DARK : "#fff" }}
+              >
+                {code === "en" ? "EN" : code === "hi" ? "हिं" : "मर"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -531,8 +577,21 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
                 </div>
                 <div className="w-full">
                   {m.text && (
-                    <div className="px-3 py-2 rounded-2xl rounded-tl-sm text-sm" style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}` }}>
+                    <div className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed" style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}`, whiteSpace: "pre-line" }}>
                       {m.text}
+                    </div>
+                  )}
+                  {m.sources && m.sources.length > 0 && (
+                    <div className="mt-2 text-xs px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200" style={{ color: FOREST_DARK }}>
+                      <p className="font-semibold text-emerald-800 flex items-center gap-1 mb-1">
+                        <span>📚</span>
+                        <span>{t.sourcesTitle || "Verified Sources:"}</span>
+                      </p>
+                      {m.sources.map((s, idx) => (
+                        <div key={idx} className="truncate text-xs">
+                          • {s.name} {s.authority ? `(${s.authority})` : ""}
+                        </div>
+                      ))}
                     </div>
                   )}
                   {m.response?.type === "all_schemes" && (
@@ -549,14 +608,14 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
                       onSelectScheme={(schemeName) => handleSend(`Why am I not eligible for ${schemeName}?`)}
                     />
                   )}
-                  {m.response?.type === "greeting" && (
+                  {m.response?.type === "greeting" && !m.text && (
                     <div className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed" style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}` }}>
                       {m.response.message}
                     </div>
                   )}
                   {(!m.response?.type || m.response?.type === "scheme") && m.response?.found && (
                     <div>
-                      {m.response.message && (
+                      {!m.text && m.response.message && (
                         <div
                           className="px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-sm leading-relaxed mb-2 shadow-xs"
                           style={{ backgroundColor: CARD, color: INK, border: `1px solid ${MOSS}`, whiteSpace: "pre-line" }}
@@ -564,7 +623,7 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
                           {m.response.message}
                         </div>
                       )}
-                      <VerdictCard response={m.response} lang={lang} />
+                      {m.response?.scheme_name && <VerdictCard response={m.response} lang={lang} />}
                     </div>
                   )}
                 </div>
@@ -612,13 +671,13 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
             style={{ color: INK }}
           />
           <button
-              onClick={() => setShowVoice(true)}
-              className="flex items-center justify-center p-1 rounded-full hover:bg-gray-100 transition-colors"
-              title="Voice Assistant"
-              aria-label="Open Voice Assistant"
-            >
-              <Mic size={16} color={MUTED} />
-            </button>
+            onClick={() => setShowVoice(true)}
+            className="flex items-center justify-center p-1 rounded-full hover:bg-gray-100 transition-colors"
+            title="Voice Assistant"
+            aria-label="Open Voice Assistant"
+          >
+            <Mic size={16} color={MUTED} />
+          </button>
         </div>
         <button
           onClick={() => handleSend()}
@@ -639,7 +698,7 @@ export default function KrushiMitraChatUI({ lang, setLang, profile = {} }) {
           lang={lang}
           setLang={setLang}
           profile={localProfile}
-          useAI={false}
+          useAI={useAI}
           onClose={() => setShowVoice(false)}
         />
       )}
